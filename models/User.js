@@ -7,13 +7,13 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
   name: { type: String, required: true },
-  email: { type: String, require: true, unique: true },
-  password: { type: String, require: true, minlength: 6 },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true, minlength: 6 },
   no_telephone: { type: Number, required: true, unique: true },
   wallet: {
     type: Number,
     required: true,
-    default: 0.0,
+    default: 0,
     validate: {
       validator: function (value) {
         // Check if the value is a finite number with up to two decimal places

@@ -144,6 +144,118 @@ const login = async (req, res, next) => {
   });
 };
 
+// Get all Users
+const showUser = async (req, res, next) => {
+  let userList;
+
+  try {
+    userList = await User.find();
+  } catch (e) {
+    const error = new HttpError("Fetching Fail", 404);
+    return next(error);
+  }
+
+  if (!userList || userList.length === 0) {
+    const error = new HttpError("No user found", 500);
+    return next(error);
+  }
+
+  res.json({
+    users: userList.map((user) => user.toObject({ getter: true })),
+  });
+};
+
+// Get Users with Id
+const getUserById = async (req, res, next) => {
+  const userId = req.params.uid; // {pid: 'p1'}
+
+  let user;
+
+  try {
+    // find the item by id
+    user = await User.findById(userId);
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, The user is not found",
+      500
+    );
+
+    throw error;
+  }
+
+  if (!user) {
+    const error = new HttpError(
+      "Could not find a user for the provided id ",
+      404
+    );
+
+    // Return error code
+    return next(error);
+  }
+
+  // show the item without id have underscore
+  return res.json({ user: user.toObject({ getters: true }) }); // { place } => { place: place}
+};
+
+// Update the Users with id
+const updateProfile = async (req, res, next) => {
+  // Check the input data
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    throw new HttpError("Invalid inputs passed, please check your data", 422);
+  }
+
+  const { name, no_telephone } = req.body;
+
+  const userId = req.params.uid;
+
+  let user;
+
+  try {
+    // find the user by id
+    user = await User.findById(userId);
+  } catch (e) {
+    const errors = HttpError(
+      "Something went wrong, could not update User",
+      500
+    );
+
+    return next(errors);
+  }
+
+  // if (user.role.toString() !== "admin") {
+  //   const error = new HttpError(
+  //     "You are not authorized to update this user",
+  //     401
+  //   );
+
+  //   return next(error);
+  // }
+
+  user.name = name;
+  user.no_telephone = no_telephone;
+
+  try {
+    // Update the user
+    await user.save();
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, could not update place",
+      500
+    );
+
+    return next(errors);
+  }
+
+  // Show the result
+  res.status(200).json({ user: user.toObject({ getters: true }) });
+};
+
 // export the function
 exports.register = register;
 exports.login = login;
+exports.showUser = showUser;
+exports.getUserId = getUserById;
+exports.updateProfile = updateProfile;
