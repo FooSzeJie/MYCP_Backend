@@ -61,5 +61,4 @@ mongoose
   })
   .catch((e) => {
     console.log(e);
-    console.log("password:", process.env.DB_PASSWORD);
   });
