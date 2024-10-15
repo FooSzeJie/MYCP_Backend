@@ -78,7 +78,8 @@ const register = async (req, res, next) => {
   }
 
   res.status(201).json({
-    user: createdUser.id,
+    userId: createdUser.id,
+    user: createdUser.name,
     email: createdUser.email,
     token: token,
     phone: createdUser.no_telephone,
@@ -194,7 +195,7 @@ const getUserById = async (req, res, next) => {
   }
 
   // show the item without id have underscore
-  return res.json({ user: user.toObject({ getters: true }) }); // { place } => { place: place}
+  return res.json({ user: user.toObject({ getters: true }) }); 
 };
 
 // Update the Users with id

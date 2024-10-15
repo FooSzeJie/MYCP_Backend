@@ -1,6 +1,4 @@
 const mongoose = require("mongoose");
-
-// unique Validator to check the data whether exist
 const uniqueValidator = require("mongoose-unique-validator");
 
 const Schema = mongoose.Schema;
@@ -12,18 +10,9 @@ const userSchema = new Schema({
   no_telephone: { type: Number, required: true, unique: true },
   wallet: {
     type: Number,
-    required: true,
     default: 0,
-    validate: {
-      validator: function (value) {
-        // Check if the value is a finite number with up to two decimal places
-        return (
-          Number.isFinite(value) &&
-          (value === Math.floor(value) || value.toFixed(2) === value.toString())
-        );
-      },
-      message: "Wallet value must be a float with up to two decimal places.",
-    },
+    get: (v) => v / 100, // Dividing the stored integer value by 100 to get the decimal amount
+    set: (v) => Math.round(v * 100), // Multiplying input by 100 and rounding to avoid floating point precision issues
   },
   role: {
     type: String,
@@ -33,7 +22,7 @@ const userSchema = new Schema({
   // vehicle: [{ type: mongoose.Types.ObjectId, require: true, ref: "Vehicle" }], // get Id from the User Model in the mongodb
 });
 
-// use the validator function
+// Use the validator function
 userSchema.plugin(uniqueValidator);
 
 module.exports = mongoose.model("User", userSchema);
