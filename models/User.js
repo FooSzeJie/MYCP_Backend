@@ -19,7 +19,7 @@ const userSchema = new Schema({
     enum: ["user", "admin", "traffic warden"],
     default: "user",
   },
-  vehicle: [{ type: mongoose.Types.ObjectId, require: true, ref: "Vehicle" }], // get Id from the User Model in the mongodb
+  vehicles: [{ type: mongoose.Types.ObjectId, require: true, ref: "Vehicle" }], // get Id from the User Model in the mongodb
 });
 
 // Use the validator function
