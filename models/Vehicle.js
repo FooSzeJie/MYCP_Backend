@@ -9,6 +9,7 @@ const vehicleSchema = new Schema({
   brand: { type: String, required: true },
   license_plate: { type: String, required: true },
   color: { type: String, required: true },
+  creator: { type: mongoose.Types.ObjectId, require: true, ref: 'User' }
 });
 
 // Use the validator function
