@@ -13,6 +13,9 @@ require("dotenv").config();
 // Use User Route
 const user_route = require("./routes/User_Route");
 
+// Use Vehicle Route
+const vehicle_route = require("./routes/Vehicle_Route");
+
 const app = express();
 
 // Decode the body
@@ -31,6 +34,9 @@ app.use((req, res, next) => {
 
 // Users Router
 app.use("/api/users", user_route);
+
+// Vehicle Router
+app.use("/api/vehicles", vehicle_route);
 
 // When enter invalid route
 app.use((req, res, next) => {
