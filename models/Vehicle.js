@@ -6,10 +6,10 @@ const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 const vehicleSchema = new Schema({
-  brand: { type: String, required: true },
   license_plate: { type: String, required: true },
+  brand: { type: String, required: true },
   color: { type: String, required: true },
-  creator: { type: mongoose.Types.ObjectId, require: true, ref: 'User' }
+  creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
 });
 
 // Use the validator function
