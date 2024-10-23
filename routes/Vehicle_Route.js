@@ -32,8 +32,10 @@ router.patch(
     check("brand").not().isEmpty(),
     check("color").not().isEmpty(),
   ],
-  vehicle_controller.updateVehicle
+  vehicle_controller.updateVehicleById
 );
+
+router.delete("/:vid/delete", vehicle_controller.deleteVehicleById);
 
 // Export the Function
 module.exports = router;

@@ -131,7 +131,7 @@ const createVehicle = async (req, res, next) => {
 };
 
 // Update Vehicle Function
-const updateVehicle = async (req, res, next) => {
+const updateVehicleById = async (req, res, next) => {
   // validator the Error
   const errors = validationResult(req);
 
@@ -181,8 +181,58 @@ const updateVehicle = async (req, res, next) => {
   res.status(200).json({ vehicle: vehicle.toObject({ getters: true }) });
 };
 
+// Delete Vehicle Function
+const deleteVehicleById = async (req, res, next) => {
+  // Get the vehicle id from the path
+  const vehicleId = req.params.vid;
+
+  let vehicle;
+
+  try {
+    // Find the data by id
+    vehicle = await Vehicle.findById(vehicleId).populate("creator");
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, could not delete vehicle",
+      500
+    );
+
+    return next(error);
+  }
+
+  // Check the vehicle whether exists or not
+  if (!vehicle) {
+    return next(new HttpError("Vehicle is not Found", 404));
+  }
+
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    // Delete the data
+    await vehicle.deleteOne({ session: sess });
+    // await sess.deleteOne({ _id: vehicleId });
+
+    vehicle.creator.vehicles.pull(vehicle);
+
+    await vehicle.creator.save({ session: sess });
+
+    await sess.commitTransaction();
+  } catch (e) {
+    const error = new HttpError(
+      "Something Went wrong, could not delete vehicle",
+      500
+    );
+
+    return next(error);
+  }
+
+  res.status(200).json({ message: "Delete vehicle" });
+};
+
 // Export the Function
 exports.getVehicleByUserId = getVehicleByUserId;
 exports.getVehicleById = getVehicleById;
 exports.createVehicle = createVehicle;
-exports.updateVehicle = updateVehicle;
+exports.updateVehicleById = updateVehicleById;
+exports.deleteVehicleById = deleteVehicleById;
