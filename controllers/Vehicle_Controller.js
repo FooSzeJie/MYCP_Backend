@@ -7,6 +7,57 @@ const HttpError = require("../models/Http_Error");
 
 const mongoose = require("mongoose");
 
+// Get vehicle information by user id
+const getVehicleByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+
+  let userWithVehicle;
+
+  try {
+    // Find the vehicle by user id
+    userWithVehicle = await User.findById(userId).populate("vehicles");
+  } catch (e) {
+    const error = new HttpError("Fetching Fail", 404);
+    return next(error);
+  }
+
+  // if (!userWithVehicle || userWithVehicle.vehicles.length === 0) {
+  if (!userWithVehicle) {
+    const error = new HttpError("The user haven't create the Vehicle", 500);
+
+    return next(error);
+  }
+
+  res.json({
+    vehicles: userWithVehicle.vehicles.map((vehicle) =>
+      vehicle.toObject({ getters: true })
+    ),
+  });
+};
+
+// Get vehicle information by vehicle id
+const getVehicleById = async (req, res, next) => {
+  const vehicleId = req.params.vid;
+
+  let vehicle;
+
+  try {
+    vehicle = await Vehicle.findById(vehicleId);
+  } catch (e) {
+    const error = new HttpError("Fetching Fail", 404);
+    return next(error);
+  }
+
+  if (!vehicle) {
+    const error = new HttpError("Vehicle not found", 404);
+
+    return next(error);
+  }
+
+  return res.json({ vehicle: vehicle.toObject({ getters: true }) });
+};
+
+// Create Vehicle Function
 const createVehicle = async (req, res, next) => {
   // Validator the Error
   const errors = validationResult(req);
@@ -79,5 +130,59 @@ const createVehicle = async (req, res, next) => {
   res.status(201).json({ vehicle: createdVehicle });
 };
 
+// Update Vehicle Function
+const updateVehicle = async (req, res, next) => {
+  // validator the Error
+  const errors = validationResult(req);
+
+  // If having Error
+  if (!errors.isEmpty()) {
+    const error = new HttpError(
+      "Invalid inputs passed, please check your data.",
+      422
+    );
+
+    return next(error);
+  }
+
+  const vehicleId = req.params.vid;
+
+  const { license_plate, brand, color } = req.body;
+
+  let vehicle;
+
+  try {
+    // Find the vehicle by id
+    vehicle = await Vehicle.findById(vehicleId);
+  } catch (e) {
+    const error = new HttpError("Not Found !", 404);
+
+    return next(error);
+  }
+
+  // Update the new item
+  vehicle.license_plate = license_plate;
+  vehicle.brand = brand;
+  vehicle.color = color;
+
+  try {
+    // Update the data
+    await vehicle.save();
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, could not update place.",
+      500
+    );
+
+    return next(error);
+  }
+
+  // result
+  res.status(200).json({ vehicle: vehicle.toObject({ getters: true }) });
+};
+
 // Export the Function
+exports.getVehicleByUserId = getVehicleByUserId;
+exports.getVehicleById = getVehicleById;
 exports.createVehicle = createVehicle;
+exports.updateVehicle = updateVehicle;
