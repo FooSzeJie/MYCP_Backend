@@ -13,6 +13,6 @@ const localAuthoritySchema = new Schema({
 });
 
 // Use the Validator function
-userSchema.plugin(uniqueValidator);
+localAuthoritySchema.plugin(uniqueValidator);
 
 module.exports = mongoose.model("Local_Authority", localAuthoritySchema);
