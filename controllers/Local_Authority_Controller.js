@@ -159,8 +159,49 @@ const updateLocalAuthority = async (req, res, next) => {
     .json({ localAuthority: localAuthority.toObject({ getters: true }) });
 };
 
+const deleteLocalAuthority = async (req, res, next) => {
+  //   Get Local Authority ID
+  const localAuthorityId = req.params.laid;
+
+  let localAuthority;
+
+  try {
+    // Find the data By id
+    localAuthority = await Local_Authority.findById(localAuthorityId);
+  } catch (e) {
+    return next(
+      new HttpError(
+        "Something went wrong, could not delete local authority, please try again",
+        500
+      )
+    );
+  }
+
+  //   Check the Local Authority whether exist or not
+  if (!localAuthority) {
+    return next(new HttpError("Local Authority is not Found", 404));
+  }
+
+  try {
+    // Delete the Local Authority
+    await Local_Authority.findByIdAndDelete(localAuthorityId);
+  } catch (e) {
+    console.error("Error deleting Local Authority:", e);
+
+    return next(
+      new HttpError(
+        "Something went wrong, could not delete local authority",
+        500
+      )
+    );
+  }
+
+  res.status(200).json({ message: "Deleted Local Authority" });
+};
+
 // Export the Function
 exports.getLocalAuthority = getLocalAuthority;
 exports.getLocalAuthorityById = getLocalAuthorityById;
 exports.createLocalAuthority = createLocalAuthority;
 exports.updateLocalAuthority = updateLocalAuthority;
+exports.deleteLocalAuthority = deleteLocalAuthority;

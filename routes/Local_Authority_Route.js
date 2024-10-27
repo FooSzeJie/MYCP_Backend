@@ -44,4 +44,6 @@ router.patch(
   local_Authority_controller.updateLocalAuthority
 );
 
+router.delete("/:laid/delete", local_Authority_controller.deleteLocalAuthority);
+
 module.exports = router;
