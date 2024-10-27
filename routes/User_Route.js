@@ -24,6 +24,8 @@ router.post(
 
 router.post("/login", user_controller.login);
 
+router.post("/adminLogin", user_controller.adminLogin);
+
 router.get("/list", user_controller.showUser);
 
 router.get("/:uid/profile", user_controller.getUserId);
