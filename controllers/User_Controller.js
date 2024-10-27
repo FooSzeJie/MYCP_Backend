@@ -52,11 +52,27 @@ const register = async (req, res, next) => {
     return next(error);
   }
 
+  // Determine role based on whether there are existing users
+  let role; // Default role
+
+  try {
+    const userCount = await User.countDocuments(); // Check total user count
+
+    if (userCount === 0) {
+      role = "admin"; // Assign admin role to the first user
+    }
+  } catch (e) {
+    const error = new HttpError("Register failed, please try again", 500);
+    return next(error);
+  }
+
   const createdUser = new User({
+    // Ensure this matches the key in the request
     name,
     email,
     password: hashedPassword,
-    no_telephone, // Ensure this matches the key in the request
+    no_telephone,
+    role,
   });
 
   try {
@@ -75,7 +91,7 @@ const register = async (req, res, next) => {
       { expiresIn: "1h" }
     );
   } catch (e) {
-    const error = new HttpError("Register Failed 2, please try again", 500);
+    const error = new HttpError("Register Failed, please try again", 500);
     return next(error);
   }
 
@@ -85,6 +101,7 @@ const register = async (req, res, next) => {
     email: createdUser.email,
     token: token,
     phone: createdUser.no_telephone,
+    role: createdUser.role,
   });
 };
 
@@ -197,7 +214,7 @@ const getUserById = async (req, res, next) => {
   }
 
   // show the item without id have underscore
-  return res.json({ user: user.toObject({ getters: true }) }); 
+  return res.json({ user: user.toObject({ getters: true }) });
 };
 
 // Update the Users with id
