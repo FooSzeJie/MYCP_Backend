@@ -16,6 +16,9 @@ const user_route = require("./routes/User_Route");
 // Use Vehicle Route
 const vehicle_route = require("./routes/Vehicle_Route");
 
+// use Local Authority Route
+const local_authority_route = require("./routes/Local_Authority_Route");
+
 const app = express();
 
 // Decode the body
@@ -37,6 +40,9 @@ app.use("/api/users", user_route);
 
 // Vehicle Router
 app.use("/api/vehicles", vehicle_route);
+
+// Admin Router
+app.use("api/local_authority", local_authority_route);
 
 // When enter invalid route
 app.use((req, res, next) => {
