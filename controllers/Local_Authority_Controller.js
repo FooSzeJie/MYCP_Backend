@@ -7,6 +7,7 @@ const HttpError = require("../models/Http_Error");
 
 // const mongoose = require("mongoose");
 
+// Get All Local Authority Data
 const getLocalAuthority = async (req, res, next) => {
   let localAuthorityList;
 
@@ -31,6 +32,7 @@ const getLocalAuthority = async (req, res, next) => {
   });
 };
 
+// Get Local Authority Data by ID
 const getLocalAuthorityById = async (req, res, next) => {
   const localAuthorityId = req.params.laid;
 
@@ -72,6 +74,7 @@ const createLocalAuthority = async (req, res, next) => {
     );
   }
 
+  //   Get the data from Frontend
   const { name, nickname, email, no_telephone, area, state } = req.body;
 
   // Create new user
@@ -97,7 +100,64 @@ const createLocalAuthority = async (req, res, next) => {
     .json({ localAuthority: "Local Authority created successfully" });
 };
 
-const updateLocalAuthority = async (req, res, next) => {};
+// Update Local Authority Data by ID
+const updateLocalAuthority = async (req, res, next) => {
+  // Validator the Error
+  const errors = validationResult(req);
+
+  // If having Error
+  if (!errors.isEmpty()) {
+    console.log(errors);
+
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
+  }
+
+  //   Get Data from the Frontend
+  const { name, nickname, email, no_telephone, area, state } = req.body;
+
+  //   Get Local Authority ID
+  const localAuthorityId = req.params.laid;
+
+  let localAuthority;
+
+  try {
+    // Find the local AUthority by id
+    localAuthority = await Local_Authority.findById(localAuthorityId);
+  } catch (e) {
+    return next(
+      new HttpError(
+        "Something went wrong, Could not update local authority, please try again",
+        500
+      )
+    );
+  }
+
+  //   Replace the Data
+  localAuthority.name = name;
+  localAuthority.nickname = nickname;
+  localAuthority.email = email;
+  localAuthority.no_telephone = no_telephone;
+  localAuthority.area = area;
+  localAuthority.state = state;
+
+  try {
+    // Update the Local Authority
+    await localAuthority.save();
+  } catch (e) {
+    return next(
+      new HttpError(
+        "Something went wrong, could not update local authority",
+        500
+      )
+    );
+  }
+
+  res
+    .status(200)
+    .json({ localAuthority: localAuthority.toObject({ getters: true }) });
+};
 
 // Export the Function
 exports.getLocalAuthority = getLocalAuthority;
