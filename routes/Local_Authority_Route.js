@@ -6,6 +6,6 @@ const local_Authority_controller = require("../controllers/Local_Authority_Contr
 
 const router = express.Router();
 
-router.post("/login", local_Authority_controller.login);
+router.post("/create", local_Authority_controller.createLocalAuthority);
 
 module.exports = router;
