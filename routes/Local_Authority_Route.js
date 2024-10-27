@@ -6,6 +6,21 @@ const local_Authority_controller = require("../controllers/Local_Authority_Contr
 
 const router = express.Router();
 
-router.post("/create", local_Authority_controller.createLocalAuthority);
+router.post(
+  "/create",
+  [
+    check("name").not().isEmpty(),
+    check("nickname").not().isEmpty(),
+    check("email").normalizeEmail().isEmail(), // Test@gmail.com => test@gmail.com
+    check("no_telephone")
+      .isNumeric()
+      .withMessage("Telephone number must be numeric")
+      .isLength({ min: 9, max: 12 })
+      .withMessage("Telephone number must be between 10 and 15 digits"),
+    check("area").not().isEmpty(),
+    check("state").not().isEmpty(),
+  ],
+  local_Authority_controller.createLocalAuthority
+);
 
 module.exports = router;
