@@ -41,8 +41,8 @@ app.use("/api/users", user_route);
 // Vehicle Router
 app.use("/api/vehicles", vehicle_route);
 
-// Admin Router
-app.use("api/local_authority", local_authority_route);
+// Local Authority Router
+app.use("/api/local_authority", local_authority_route);
 
 // When enter invalid route
 app.use((req, res, next) => {
