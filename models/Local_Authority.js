@@ -6,6 +6,7 @@ const Schema = mongoose.Schema;
 
 const localAuthoritySchema = new Schema({
   name: { type: String, required: true },
+  nickname: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   no_telephone: { type: Number, required: true, unique: true },
   area: { type: String, required: true },
