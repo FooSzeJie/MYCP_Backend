@@ -134,6 +134,9 @@ const updateLocalAuthority = async (req, res, next) => {
     );
   }
 
+  // Update fields if Local Authority exists
+  //   Object.assign(localAuthority, { name, nickname, email, no_telephone, area, state });
+
   //   Replace the Data
   localAuthority.name = name;
   localAuthority.nickname = nickname;
