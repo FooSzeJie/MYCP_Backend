@@ -16,6 +16,9 @@ const user_route = require("./routes/User_Route");
 // Use Vehicle Route
 const vehicle_route = require("./routes/Vehicle_Route");
 
+// Use Car Parking Route
+const car_parking_route = require("./routes/Car_Parking_Route")
+
 // use Local Authority Route
 const local_authority_route = require("./routes/Local_Authority_Route");
 
@@ -43,6 +46,9 @@ app.use("/api/vehicles", vehicle_route);
 
 // Local Authority Router
 app.use("/api/local_authority", local_authority_route);
+
+// Car Parking Router
+app.use("/api/car_parking", car_parking_route);
 
 // When enter invalid route
 app.use((req, res, next) => {
