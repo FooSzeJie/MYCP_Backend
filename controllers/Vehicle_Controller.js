@@ -2,7 +2,7 @@ const { validationResult } = require("express-validator");
 
 // Import Model
 const Vehicle = require("../models/Vehicle");
-const User = require("../models/user");
+const User = require("../models/User");
 const HttpError = require("../models/Http_Error");
 
 const mongoose = require("mongoose");

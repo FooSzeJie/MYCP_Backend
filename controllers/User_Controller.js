@@ -9,7 +9,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // Import Model
-const User = require("../models/user");
+const User = require("../models/User");
 const HttpError = require("../models/Http_Error");
 
 // Register function
