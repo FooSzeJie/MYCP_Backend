@@ -15,6 +15,7 @@ const carParkingSchema = new Schema({
     enum: ["complete", "ongoing"],
     default: "ongoing", // Set a valid default value within the enum
   },
+  user: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
 });
 
 // Use the uniqueValidator plugin to enforce uniqueness constraints

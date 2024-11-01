@@ -20,6 +20,9 @@ const userSchema = new Schema({
     default: "user",
   },
   vehicles: [{ type: mongoose.Types.ObjectId, require: true, ref: "Vehicle" }], // get Id from the User Model in the mongodb
+  parking_history: [
+    { type: mongoose.Types.ObjectId, require: true, ref: "Car_Parking" },
+  ], // get Id from the User Model in the mongodb
 });
 
 // Use the validator function
