@@ -20,4 +20,10 @@ router.post(
   car_parking_controller.createCarParking
 );
 
+router.patch(
+  "/:cpid/extend",
+  [check("duration").not().isEmpty()],
+  car_parking_controller.extendCarParking
+);
+
 module.exports = router;
