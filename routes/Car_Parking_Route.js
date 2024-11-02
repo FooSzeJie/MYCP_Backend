@@ -10,10 +10,10 @@ router.post(
   "/create",
   [
     check("starting_time").not().isEmpty(),
-    check("end_time").not().isEmpty(),
     check("duration").not().isEmpty(),
     check("local_authority").not().isEmpty(),
     check("vehicle").not().isEmpty(),
+    check("creator").not().isEmpty(),
   ],
   car_parking_controller.createCarParking
 );
