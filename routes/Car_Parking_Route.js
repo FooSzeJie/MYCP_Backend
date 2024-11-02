@@ -26,4 +26,9 @@ router.patch(
   car_parking_controller.extendCarParking
 );
 
+router.patch(
+  "/:cpid/terminate",
+  car_parking_controller.terminateCarParking
+);
+
 module.exports = router;

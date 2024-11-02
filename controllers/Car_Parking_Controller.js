@@ -154,7 +154,50 @@ const extendCarParking = async (req, res, next) => {
 };
 
 // Terminate the Car Parking
-const terminateCarParking = async (req, res, next) => {};
+const terminateCarParking = async (req, res, next) => {
+  // validator the Error
+  const errors = validationResult(req);
+
+  // If having Error
+  if (!errors.isEmpty()) {
+    const error = new HttpError(
+      "Invalid inputs passed, please check your data.",
+      422
+    );
+
+    return next(error);
+  }
+
+  const carParkingId = req.params.cpid;
+
+  let carParking;
+
+  try {
+    // Find the car parking entry by ID
+    carParking = await Car_Parking.findById(carParkingId);
+  } catch (e) {
+    const error = new HttpError("Not Found !", 404);
+
+    return next(error);
+  }
+
+  // Update The new item
+  carParking.status = "complete";
+
+  try {
+    // Update the data
+    await carParking.save();
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, could not update duration.",
+      500
+    );
+
+    return next(error);
+  }
+
+  res.status(200).json({ carParking: carParking.toObject({ getters: true }) });
+};
 
 // Export the Function
 exports.getCarParkingById = getCarParkingById;
