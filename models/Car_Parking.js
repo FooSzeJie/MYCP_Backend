@@ -8,14 +8,14 @@ const carParkingSchema = new Schema({
   end_time: { type: Date, required: true }, // Use Date type for timestamps
   duration: { type: Number, required: true },
   local_authority: { type: String, required: true },
-  vehicles: { type: String, required: true },
+  vehicle: { type: String, required: true },
   status: {
     type: String,
     required: true,
     enum: ["complete", "ongoing"],
     default: "ongoing", // Set a valid default value within the enum
   },
-  user: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
+  creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
 });
 
 // Use the uniqueValidator plugin to enforce uniqueness constraints
