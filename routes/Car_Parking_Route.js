@@ -6,6 +6,8 @@ const car_parking_controller = require("../controllers/Car_Parking_Controller");
 
 const router = express.Router();
 
+router.get("/:cpid", car_parking_controller.getCarParkingById);
+
 router.post(
   "/create",
   [

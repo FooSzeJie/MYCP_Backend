@@ -8,7 +8,25 @@ const HttpError = require("../models/Http_Error");
 const mongoose = require("mongoose");
 
 // Get Car Parking Information by Car Parking Id
-const getCarParkingById = async (req, res, next) => {};
+const getCarParkingById = async (req, res, next) => {
+  const carParkingId = req.params.cpid;
+
+  let carParking;
+
+  try {
+    carParking = await Car_Parking.findById(carParkingId);
+  } catch (e) {
+    const error = new HttpError("Fetching Fail", 404);
+    return next(error);
+  }
+
+  if (!carParking) {
+    const error = new HttpError("Car Parking Not Found", 404);
+    return next(error);
+  }
+
+  return res.json({ carParking: carParking.toObject({ getters: true }) });
+};
 
 // Create the Car Parking
 const createCarParking = async (req, res, next) => {
