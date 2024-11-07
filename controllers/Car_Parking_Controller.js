@@ -28,6 +28,41 @@ const getCarParkingById = async (req, res, next) => {
   return res.json({ carParking: carParking.toObject({ getters: true }) });
 };
 
+// Get Car Parking status by User Id
+const getCarParkingByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+
+  let userWithParkingHistory;
+
+  try {
+    // Find the user by ID and populate the parking history
+    userWithParkingHistory = await User.findById(userId).populate({
+      path: "parking_history",
+      match: { status: "ongoing" }, // Filter only "ongoing" car parking
+    });
+  } catch (e) {
+    console.error("Error fetching car parking history:", e);
+    const error = new HttpError(
+      "Fetching car parking data failed, please try again",
+      500
+    );
+    return next(error);
+  }
+
+  // if (!userWithParkingHistory) {
+  //   return next(
+  //     new HttpError("No ongoing car parking found for this user", 404)
+  //   );
+  // }
+
+  // Return the filtered "ongoing" car parking information
+  res.json({
+    carParking: userWithParkingHistory.parking_history.map((carParking) =>
+      carParking.toObject({ getters: true })
+    ),
+  });
+};
+
 // Create the Car Parking
 const createCarParking = async (req, res, next) => {
   // Validate the error
@@ -43,19 +78,22 @@ const createCarParking = async (req, res, next) => {
   const { starting_time, duration, local_authority, vehicle, creator } =
     req.body;
 
-  // Ensure starting_time is converted to a Date object if it's in ISO string format
+  // Ensure starting_time is converted to a Date object in UTC
   const startTime = new Date(starting_time);
   if (isNaN(startTime.getTime())) {
     return next(new HttpError("Invalid starting time format", 422));
   }
 
-  // Calculate the end time by adding the duration in minutes
-  let end_time = new Date(startTime.getTime() + duration * 60 * 1000); // Convert minutes to milliseconds
+  // Set the startTime to UTC explicitly (just as a best practice)
+  const startTimeUtc = new Date(startTime.toISOString());
+
+  // Calculate the end time by adding the duration in minutes, keeping it in UTC
+  const end_time = new Date(startTimeUtc.getTime() + duration * 60 * 1000);
 
   // Create Car Parking
   const createdCarParking = new Car_Parking({
-    starting_time: startTime,
-    end_time,
+    starting_time: startTimeUtc,
+    end_time: new Date(end_time.toISOString()), // Ensure end_time is also in UTC
     duration,
     local_authority,
     vehicle,
@@ -201,6 +239,7 @@ const terminateCarParking = async (req, res, next) => {
 
 // Export the Function
 exports.getCarParkingById = getCarParkingById;
+exports.getCarParkingByUserId = getCarParkingByUserId;
 exports.createCarParking = createCarParking;
 exports.extendCarParking = extendCarParking;
 exports.terminateCarParking = terminateCarParking;

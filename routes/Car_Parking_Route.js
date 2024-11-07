@@ -6,7 +6,9 @@ const car_parking_controller = require("../controllers/Car_Parking_Controller");
 
 const router = express.Router();
 
-router.get("/:cpid", car_parking_controller.getCarParkingById);
+router.get("/:cpid/detail", car_parking_controller.getCarParkingById);
+
+router.get("/:uid/status", car_parking_controller.getCarParkingByUserId);
 
 router.post(
   "/create",
@@ -26,9 +28,6 @@ router.patch(
   car_parking_controller.extendCarParking
 );
 
-router.patch(
-  "/:cpid/terminate",
-  car_parking_controller.terminateCarParking
-);
+router.patch("/:cpid/terminate", car_parking_controller.terminateCarParking);
 
 module.exports = router;
