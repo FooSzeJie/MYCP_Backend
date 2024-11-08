@@ -22,6 +22,9 @@ const car_parking_route = require("./routes/Car_Parking_Route")
 // use Local Authority Route
 const local_authority_route = require("./routes/Local_Authority_Route");
 
+// use Transaction Route
+const transaction_route = require("./routes/Transaction_Route");
+
 const app = express();
 
 // Decode the body
@@ -49,6 +52,9 @@ app.use("/api/local_authority", local_authority_route);
 
 // Car Parking Router
 app.use("/api/car_parking", car_parking_route);
+
+// Transaction Router
+app.use("/api/transaction", transaction_route);
 
 // When enter invalid route
 app.use((req, res, next) => {
