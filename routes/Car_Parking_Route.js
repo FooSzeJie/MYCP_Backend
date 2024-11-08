@@ -30,4 +30,6 @@ router.patch(
 
 router.patch("/:cpid/terminate", car_parking_controller.terminateCarParking);
 
+router.post("/:uid/SMS", car_parking_controller.sendSMS);
+
 module.exports = router;

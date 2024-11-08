@@ -237,9 +237,64 @@ const terminateCarParking = async (req, res, next) => {
   res.status(200).json({ carParking: carParking.toObject({ getters: true }) });
 };
 
+const sendSMS = async (req, res, next) => {
+  // Validate input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(
+      new HttpError("Invalid inputs passed, please check your data.", 422)
+    );
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const client = require("twilio")(accountSid, authToken);
+
+  const { message } = req.body;
+  const userId = req.params.uid;
+
+  let userWithParkingHistory;
+  try {
+    // Find the user by ID and populate the parking history
+    userWithParkingHistory = await User.findById(userId).populate({
+      path: "parking_history",
+      match: { status: "ongoing" }, // Filter only "ongoing" car parking
+    });
+
+    if (!userWithParkingHistory) {
+      return next(new HttpError("User not found", 404));
+    }
+
+    // Check if there's any ongoing parking
+    if (userWithParkingHistory.parking_history.length === 0) {
+      return next(new HttpError("No ongoing parking found for this user", 404));
+    }
+  } catch (e) {
+    console.error("Error fetching car parking history:", e);
+    return next(
+      new HttpError("Fetching car parking data failed, please try again", 500)
+    );
+  }
+
+  // Send SMS to the user's phone number if there is an ongoing parking
+  try {
+    await client.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: `${userWithParkingHistory.no_telephone}`, // Add "+" to format as an international number
+    });
+
+    res.status(200).json({ message: "SMS sent successfully" });
+  } catch (e) {
+    console.error("Error sending SMS:", e);
+    return next(new HttpError("Failed to send SMS, please try again", 500));
+  }
+};
+
 // Export the Function
 exports.getCarParkingById = getCarParkingById;
 exports.getCarParkingByUserId = getCarParkingByUserId;
 exports.createCarParking = createCarParking;
 exports.extendCarParking = extendCarParking;
 exports.terminateCarParking = terminateCarParking;
+exports.sendSMS = sendSMS;
