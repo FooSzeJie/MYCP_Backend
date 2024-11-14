@@ -4,19 +4,15 @@ const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 const transactionSchema = new Schema({
-  token: {
-    type: Number,
-    required: true,
-    get: (v) => v / 100,
-    set: (v) => Math.round(v * 100),
-  },
   money: {
     type: String,
     required: true,
     get: (v) => v / 100,
     set: (v) => Math.round(v * 100),
   },
-  starting_time: { type: Date, required: true }, // Use Date type for timestamps
+
+  date: { type: Date, required: true }, // Use Date type for timestamps
+
   status: {
     type: String,
     required: true,

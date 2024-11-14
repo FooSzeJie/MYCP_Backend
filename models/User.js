@@ -34,8 +34,13 @@ const userSchema = new Schema({
     default: "user",
   },
   vehicles: [{ type: mongoose.Types.ObjectId, required: true, ref: "Vehicle" }],
+
   parking_history: [
     { type: mongoose.Types.ObjectId, required: true, ref: "Car_Parking" },
+  ],
+
+  transaction_history: [
+    { type: mongoose.Types.ObjectId, required: true, ref: "Transaction" },
   ],
 });
 
