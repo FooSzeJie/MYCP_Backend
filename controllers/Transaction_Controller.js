@@ -1,8 +1,8 @@
 // File: controllers/Transaction_Controller.js
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
-const HttpError = require("../models/Http_Error");
 const Transaction = require("../models/Transaction");
+const HttpError = require("../models/Http_Error");
 const paypal = require("@paypal/checkout-server-sdk");
 const mongoose = require("mongoose");
 
@@ -151,5 +151,53 @@ const capturePayment = async (req, res, next) => {
   }
 };
 
+const getTransactionByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+
+  let userWithTransaction;
+
+  try {
+    userWithTransaction = await User.findById(userId).populate(
+      "transaction_history"
+    );
+  } catch (e) {
+    console.error("Error fetching user:", e);
+    return next(new HttpError("Fetching Fail", 404));
+  }
+
+  if (!userWithTransaction) {
+    const error = new HttpError("The user haven't make any transaction", 500);
+
+    return next(error);
+  }
+
+  res.json({
+    transaction: userWithTransaction.transaction_history.map((transaction) =>
+      transaction.toObject({ getters: true })
+    ),
+  });
+};
+
+const getTransactionById = async (req, res, next) => {
+  const transactionId = req.params.tid;
+
+  let transaction;
+
+  try {
+    transaction = await Transaction.findById(transactionId);
+  } catch (e) {
+    console.error("Error fetching transaction:", e);
+    return next(new HttpError("Fetching Fail", 404));
+  }
+
+  if (!transaction) {
+    return next(new HttpError("Transaction is not found", 404));
+  }
+
+  return res.json({ transaction: transaction.toObject({ getters: true }) });
+};
+
 exports.createTopUpTransaction = createTopUpTransaction;
 exports.capturePayment = capturePayment;
+exports.getTransactionByUserId = getTransactionByUserId;
+exports.getTransactionById = getTransactionById;
