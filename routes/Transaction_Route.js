@@ -12,4 +12,6 @@ router.post("/:uid/paypal", transaction_controller.createTopUpTransaction);
 
 router.post("/:uid/paypal/capture", transaction_controller.capturePayment);
 
+router.post("/create", transaction_controller.createParkingTransaction);
+
 module.exports = router;
