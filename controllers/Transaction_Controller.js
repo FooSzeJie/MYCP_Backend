@@ -151,6 +151,66 @@ const capturePayment = async (req, res, next) => {
   }
 };
 
+const createParkingTransaction = async (req, res, next) => {
+  // Validator the Error
+  const errors = validationResult(req);
+
+  // if having error
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
+  }
+
+  const { money, date, deliver, creator } = req.body;
+
+  const createdParkingTransaction = new Transaction({
+    money,
+    date,
+    deliver,
+    creator,
+  });
+
+  let user;
+
+  try {
+    user = await User.findById(creator);
+  } catch (e) {
+    return next(
+      new HttpError("Creating Parking Transaction Fail, please try again", 500)
+    );
+  }
+
+  if (!user) {
+    return next(new HttpError("User Not Available", 404));
+  }
+
+  try {
+    // Starting The Session
+    const sess = await mongoose.startSession();
+
+    // Starting The Transaction
+    sess.startTransaction();
+
+    // Store the data into db
+    await createdParkingTransaction.save({ session: sess });
+
+    // Push is one of the mongoose method to store the transaction id to use table transaction_history attribute
+    user.transaction_history.push(createdParkingTransaction);
+
+    // Store the data to the db by User model
+    await user.save({ session: sess });
+
+    // Submit the transition, only this step will update the db
+    await sess.commitTransaction();
+  } catch (e) {
+    return next("Created Fail !", 500);
+  }
+
+  res.status(201).json({ transaction: createdParkingTransaction });
+};
+
 const getTransactionByUserId = async (req, res, next) => {
   const userId = req.params.uid;
 
@@ -199,5 +259,6 @@ const getTransactionById = async (req, res, next) => {
 
 exports.createTopUpTransaction = createTopUpTransaction;
 exports.capturePayment = capturePayment;
+exports.createParkingTransaction = createParkingTransaction;
 exports.getTransactionByUserId = getTransactionByUserId;
 exports.getTransactionById = getTransactionById;

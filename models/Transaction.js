@@ -19,6 +19,13 @@ const transactionSchema = new Schema({
     enum: ["in", "out"],
     default: "in", // Set a valid default value within the enum
   },
+
+  deliver: {
+    type: String,
+    required: true,
+    default: "Self",
+  },
+
   creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
 });
 
