@@ -143,10 +143,51 @@ const createSaman = async (req, res, next) => {
   res.status(201).json({ saman: createdSaman });
 };
 
-const updateSamanStatus = async (req, res, next) => {};
+const paidSaman = async (req, res, next) => {
+  // validator the Error
+  const errors = validationResult(req);
+
+  // If having Error
+  if (!errors.isEmpty()) {
+    const error = new HttpError(
+      "Invalid inputs passed, please check your data.",
+      422
+    );
+
+    return next(error);
+  }
+
+  const sid = req.params.sid;
+
+  let saman;
+
+  try {
+    // Find the saman by id
+    saman = await Saman.findById(sid);
+  } catch (e) {
+    const error = new HttpError("Not Found !", 404);
+
+    return next(error);
+  }
+
+  saman.status = "paid";
+
+  try {
+    // Update the saman status
+    await saman.save();
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, could not update duration.",
+      500
+    );
+    return next(error);
+  }
+
+  res.status(200).json({ saman: saman.toObject({ getters: true }) });
+};
 
 // Export the Function
 exports.getSamanById = getSamanById;
 exports.getSamanByUserId = getSamanByUserId;
 exports.createSaman = createSaman;
-exports.updateSamanStatus = updateSamanStatus;
+exports.paidSaman = paidSaman;

@@ -10,4 +10,6 @@ router.get("/:uid/list", saman_controller.getSamanByUserId);
 
 router.post("/create", saman_controller.createSaman);
 
+router.patch("/:sid/paid", saman_controller.paidSaman);
+
 module.exports = router;
