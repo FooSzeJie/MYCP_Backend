@@ -17,13 +17,16 @@ const user_route = require("./routes/User_Route");
 const vehicle_route = require("./routes/Vehicle_Route");
 
 // Use Car Parking Route
-const car_parking_route = require("./routes/Car_Parking_Route")
+const car_parking_route = require("./routes/Car_Parking_Route");
 
 // use Local Authority Route
 const local_authority_route = require("./routes/Local_Authority_Route");
 
 // use Transaction Route
 const transaction_route = require("./routes/Transaction_Route");
+
+// use Transaction Route
+const saman_route = require("./routes/Saman_Route");
 
 const app = express();
 
@@ -55,6 +58,9 @@ app.use("/api/car_parking", car_parking_route);
 
 // Transaction Router
 app.use("/api/transaction", transaction_route);
+
+// Saman Router
+app.use("/api/saman", saman_route);
 
 // When enter invalid route
 app.use((req, res, next) => {
