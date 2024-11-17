@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const uniqueValidator = require("mongoose-unique-validator");
 
-const Schema = monggose.Schema;
+const Schema = mongoose.Schema;
 
 const samanSchema = new Schema({
   name: { type: String, required: true },
