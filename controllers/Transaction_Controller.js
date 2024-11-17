@@ -152,10 +152,9 @@ const capturePayment = async (req, res, next) => {
 };
 
 const createParkingTransaction = async (req, res, next) => {
-  // Validator the Error
+  // Validate the inputs
   const errors = validationResult(req);
 
-  // if having error
   if (!errors.isEmpty()) {
     console.log(errors);
     return next(
@@ -165,47 +164,61 @@ const createParkingTransaction = async (req, res, next) => {
 
   const { money, date, deliver, creator } = req.body;
 
+  // Create a new parking transaction
   const createdParkingTransaction = new Transaction({
     money,
     date,
     deliver,
+    status: "out", // Fixed syntax for status assignment
     creator,
   });
 
   let user;
 
   try {
+    // Find the user by ID
     user = await User.findById(creator);
   } catch (e) {
     return next(
-      new HttpError("Creating Parking Transaction Fail, please try again", 500)
+      new HttpError(
+        "Creating Parking Transaction failed, please try again",
+        500
+      )
     );
   }
 
   if (!user) {
-    return next(new HttpError("User Not Available", 404));
+    return next(new HttpError("User not found", 404));
   }
 
-  try {
-    // Starting The Session
-    const sess = await mongoose.startSession();
+  // Deduct money from the user's wallet
+  if (user.wallet < money) {
+    return next(new HttpError("Insufficient funds in wallet", 400));
+  }
 
-    // Starting The Transaction
+  user.wallet -= money;
+
+  try {
+    // Start a session and transaction
+    const sess = await mongoose.startSession();
     sess.startTransaction();
 
-    // Store the data into db
+    // Save the new transaction
     await createdParkingTransaction.save({ session: sess });
 
-    // Push is one of the mongoose method to store the transaction id to use table transaction_history attribute
-    user.transaction_history.push(createdParkingTransaction);
+    // Add the transaction to the user's transaction history
+    user.transaction_history.push(createdParkingTransaction._id);
 
-    // Store the data to the db by User model
+    // Save the user with the updated wallet and transaction history
     await user.save({ session: sess });
 
-    // Submit the transition, only this step will update the db
+    // Commit the transaction
     await sess.commitTransaction();
+    sess.endSession();
   } catch (e) {
-    return next("Created Fail !", 500);
+    return next(
+      new HttpError("Transaction creation failed, please try again", 500)
+    );
   }
 
   res.status(201).json({ transaction: createdParkingTransaction });
