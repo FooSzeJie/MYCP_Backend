@@ -7,9 +7,20 @@ const Schema = mongoose.Schema;
 
 const vehicleSchema = new Schema({
   license_plate: { type: String, required: true },
+
   brand: { type: String, required: true },
+
   color: { type: String, required: true },
+
   creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
+
+  saman_history: [
+    {
+      type: mongoose.Types.ObjectId,
+      required: true,
+      ref: "Saman",
+    },
+  ],
 });
 
 // Use the validator function

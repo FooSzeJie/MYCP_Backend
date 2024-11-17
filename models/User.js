@@ -39,8 +39,8 @@ const userSchema = new Schema({
     { type: mongoose.Types.ObjectId, required: true, ref: "Car_Parking" },
   ],
 
-  transaction_history: [
-    { type: mongoose.Types.ObjectId, required: true, ref: "Transaction" },
+  Given_Saman: [
+    { type: mongoose.Types.ObjectId, required: true, ref: "Saman" },
   ],
 });
 
