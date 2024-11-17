@@ -39,7 +39,7 @@ const userSchema = new Schema({
     { type: mongoose.Types.ObjectId, required: true, ref: "Car_Parking" },
   ],
 
-  Given_Saman: [
+  given_saman: [
     { type: mongoose.Types.ObjectId, required: true, ref: "Saman" },
   ],
 });
