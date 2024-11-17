@@ -8,6 +8,28 @@ const HttpError = require("../models/Http_Error");
 
 const mongoose = require("mongoose");
 
+const getSamanById = async (req, res, next) => {
+  const samanId = req.params.sid;
+
+  let saman;
+
+  try {
+    saman = await Saman.findById(samanId);
+  } catch (e) {
+    const error = new HttpError("Fetching Fail", 404);
+    return next(error);
+  }
+
+  if (!saman) {
+    const error = new HttpError("Saman not found", 404);
+    return next(error);
+  }
+
+  return res.json({ saman: saman.toObject({ getters: true }) });
+};
+
+const getSamanByUserId = async (req, res, next) => {};
+
 const createSaman = async (req, res, next) => {
   // Validator the Error
   const errors = validationResult(req);
@@ -95,5 +117,10 @@ const createSaman = async (req, res, next) => {
   res.status(201).json({ saman: createdSaman });
 };
 
+const updateSamanStatus = async (req, res, next) => {};
+
 // Export the Function
+exports.getSamanById = getSamanById;
+exports.getSamanByUserId = getSamanByUserId;
 exports.createSaman = createSaman;
+exports.updateSamanStatus = updateSamanStatus;
