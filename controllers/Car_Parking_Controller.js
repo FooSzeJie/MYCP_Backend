@@ -40,6 +40,12 @@ const getCarParkingByUserId = async (req, res, next) => {
       path: "parking_history",
       match: { status: "ongoing" }, // Filter only "ongoing" car parking
     });
+
+    // Check if the user exists
+    if (!userWithParkingHistory) {
+      return next(new HttpError("User not found", 404));
+    }
+
   } catch (e) {
     console.error("Error fetching car parking history:", e);
     const error = new HttpError(
@@ -49,12 +55,6 @@ const getCarParkingByUserId = async (req, res, next) => {
     return next(error);
   }
 
-  // if (!userWithParkingHistory) {
-  //   return next(
-  //     new HttpError("No ongoing car parking found for this user", 404)
-  //   );
-  // }
-
   // Return the filtered "ongoing" car parking information
   res.json({
     carParking: userWithParkingHistory.parking_history.map((carParking) =>
@@ -62,6 +62,7 @@ const getCarParkingByUserId = async (req, res, next) => {
     ),
   });
 };
+
 
 // Create the Car Parking
 const createCarParking = async (req, res, next) => {
