@@ -28,7 +28,33 @@ const getSamanById = async (req, res, next) => {
   return res.json({ saman: saman.toObject({ getters: true }) });
 };
 
-const getSamanByUserId = async (req, res, next) => {};
+const getSamanByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+
+  let userWithGivenSaman;
+
+  try {
+    // Find the user by id and populate the given saman
+    userWithGivenSaman = await User.findById(userId).populate("given_saman");
+
+    if (!userWithGivenSaman) {
+      return next(new HttpError("User not found", 404));
+    }
+  } catch (e) {
+    console.error("Error fetching car parking history:", e);
+    const error = new HttpError(
+      "Fetching car parking data failed, please try again",
+      500
+    );
+    return next(error);
+  }
+
+  res.json({
+    saman: userWithGivenSaman.given_saman.map((saman) =>
+      saman.toObject({ getters: true })
+    ),
+  });
+};
 
 const createSaman = async (req, res, next) => {
   // Validator the Error
