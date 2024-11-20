@@ -22,21 +22,28 @@ const userSchema = new Schema({
       return isNaN(num) ? undefined : num; // If parsing fails, store undefined
     },
   },
+
   wallet: {
     type: Number,
     default: 0,
     get: (v) => v / 100,
     set: (v) => Math.round(v * 100),
   },
+
   role: {
     type: String,
     enum: ["user", "admin", "traffic warden"],
     default: "user",
   },
+
   vehicles: [{ type: mongoose.Types.ObjectId, required: true, ref: "Vehicle" }],
 
   parking_history: [
     { type: mongoose.Types.ObjectId, required: true, ref: "Car_Parking" },
+  ],
+
+  transaction_history: [
+    { type: mongoose.Types.ObjectId, required: true, ref: "Transaction" },
   ],
 
   given_saman: [
