@@ -2,6 +2,7 @@ const { validationResult } = require("express-validator");
 
 // Import Model
 const User = require("../models/User");
+const Vehicle = require("../models/Vehicle");
 const Car_Parking = require("../models/Car_Parking");
 const HttpError = require("../models/Http_Error");
 
@@ -15,6 +16,10 @@ const getCarParkingById = async (req, res, next) => {
 
   try {
     carParking = await Car_Parking.findById(carParkingId);
+    // carParking = await Car_Parking.findById(carParkingId).populate(
+    //   "vehicle",
+    //   "license_plate"
+    // );
   } catch (e) {
     const error = new HttpError("Fetching Fail", 404);
     return next(error);
@@ -39,13 +44,13 @@ const getCarParkingByUserId = async (req, res, next) => {
     userWithParkingHistory = await User.findById(userId).populate({
       path: "parking_history",
       match: { status: "ongoing" }, // Filter only "ongoing" car parking
+      populate: { path: "vehicle", select: "license_plate" }, // Populate vehicle inside parking history
     });
 
     // Check if the user exists
     if (!userWithParkingHistory) {
       return next(new HttpError("User not found", 404));
     }
-
   } catch (e) {
     console.error("Error fetching car parking history:", e);
     const error = new HttpError(
@@ -63,6 +68,57 @@ const getCarParkingByUserId = async (req, res, next) => {
   });
 };
 
+// Get Car Parking status by User Id
+const checkCarParkingStatus = async (req, res, next) => {
+  // Validate the error
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors.array());
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
+  }
+
+  const { license_plate, brand, color } = req.body; // Assuming these details are sent in the request body
+
+  let carParkingWithVehicle;
+
+  try {
+    // Find the vehicle based on the license plate, brand, and color
+    const vehicle = await Vehicle.findOne({
+      license_plate,
+      brand,
+      color,
+    });
+
+    if (!vehicle) {
+      return next(new HttpError("Vehicle not found", 404));
+    }
+
+    // Find car parking associated with the vehicle
+    carParkingWithVehicle = await Car_Parking.findOne({
+      vehicle: vehicle._id,
+      status: "ongoing", // Only check for ongoing car parking
+    });
+
+    if (!carParkingWithVehicle) {
+      return next(
+        new HttpError("No ongoing car parking found for this vehicle", 404)
+      );
+    }
+  } catch (e) {
+    console.error("Error fetching car parking:", e);
+    return next(
+      new HttpError("Fetching car parking data failed, please try again", 500)
+    );
+  }
+
+  // Return the parking duration and other details
+  res.status(200).json({
+    carParking: carParkingWithVehicle.toObject({ getters: true }),
+  });
+};
 
 // Create the Car Parking
 const createCarParking = async (req, res, next) => {
@@ -295,6 +351,7 @@ const sendSMS = async (req, res, next) => {
 // Export the Function
 exports.getCarParkingById = getCarParkingById;
 exports.getCarParkingByUserId = getCarParkingByUserId;
+exports.checkCarParkingStatus = checkCarParkingStatus;
 exports.createCarParking = createCarParking;
 exports.extendCarParking = extendCarParking;
 exports.terminateCarParking = terminateCarParking;

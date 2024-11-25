@@ -8,7 +8,7 @@ const carParkingSchema = new Schema({
   end_time: { type: Date, required: true }, // Use Date type for timestamps
   duration: { type: Number, required: true },
   local_authority: { type: String, required: true },
-  vehicle: { type: String, required: true },
+  vehicle: { type: mongoose.Types.ObjectId, required: true, ref: "Vehicle" },
   status: {
     type: String,
     required: true,

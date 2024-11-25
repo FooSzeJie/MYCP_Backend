@@ -11,6 +11,16 @@ router.get("/:cpid/detail", car_parking_controller.getCarParkingById);
 router.get("/:uid/status", car_parking_controller.getCarParkingByUserId);
 
 router.post(
+  "/check_status",
+  [
+    check("license_plate").not().isEmpty(),
+    check("brand").not().isEmpty(),
+    check("color").not().isEmpty(),
+  ],
+  car_parking_controller.checkCarParkingStatus
+);
+
+router.post(
   "/create",
   [
     check("starting_time").not().isEmpty(),
