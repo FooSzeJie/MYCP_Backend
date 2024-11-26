@@ -12,6 +12,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const HttpError = require("../models/Http_Error");
 
+// Use Email Package
+const nodemailer = require("nodemailer");
+
 // Register function
 const register = async (req, res, next) => {
   const errors = validationResult(req);
@@ -341,6 +344,71 @@ const updateProfile = async (req, res, next) => {
   res.status(200).json({ user: user.toObject({ getters: true }) });
 };
 
+// Send the Email
+const sendEmail = async (req, res, next) => {
+  // Check the input data
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    throw new HttpError("Invalid inputs passed, please check your data", 422);
+  }
+
+  const userId = req.params.uid;
+
+  let user;
+
+  try {
+    user = await User.findById(userId);
+  } catch (e) {
+    const error = new HttpError("User not found", 404);
+
+    return next(error);
+  }
+
+  if (!user) {
+    return next(new HttpError("User not found", 404));
+  }
+
+  const { subject, message } = req.body;
+
+  try {
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      // service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // true for port 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USER, // Store credentials in environment variables
+        pass: process.env.EMAIL_PASSWORD,
+      },
+      // logger: true, // Enable logging to see more details
+    });
+
+    // Email details
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: subject,
+      text: message,
+    };
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+
+    // console.log("Email sent: " + info.response);
+
+    res.status(200).json({ message: "Email sent successfully!" });
+  } catch (e) {
+    console.error("Error sending email:", e);
+
+    return next(
+      new HttpError("Something went wrong, could not send email", 500)
+    );
+  }
+};
+
 // export the function
 exports.register = register;
 exports.login = login;
@@ -348,3 +416,4 @@ exports.adminLogin = adminLogin;
 exports.showUser = showUser;
 exports.getUserId = getUserById;
 exports.updateProfile = updateProfile;
+exports.sendEmail = sendEmail;

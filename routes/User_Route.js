@@ -43,5 +43,11 @@ router.patch(
   user_controller.updateProfile
 );
 
+router.post(
+  "/:uid/send_email",
+  [check("subject").not().isEmpty(), check("message").not().isEmpty()],
+  user_controller.sendEmail
+);
+
 // Export the function
 module.exports = router;
