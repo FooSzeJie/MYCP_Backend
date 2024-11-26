@@ -37,7 +37,7 @@ const getSamanHistoryByUserId = async (req, res, next) => {
       path: "vehicles", // Populate the vehicles owned by the user
       populate: {
         path: "saman_history", // Populate the saman history for each vehicle
-        select: "name date price status", // Include only specific fields from Saman
+        select: "offense date price status", // Include only specific fields from Saman
       },
     });
     if (!userWithVehicleSamanHistory) {
@@ -105,7 +105,7 @@ const createSaman = async (req, res, next) => {
     );
   }
 
-  const { name, date, license_plate, creator } = req.body;
+  const { offense, date, license_plate, creator } = req.body;
 
   try {
     // Find the vehicle by license plate
@@ -116,7 +116,7 @@ const createSaman = async (req, res, next) => {
 
     // Create a new saman
     const createdSaman = new Saman({
-      name,
+      offense,
       date,
       vehicle: vehicle._id,
       creator,

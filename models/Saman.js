@@ -5,7 +5,7 @@ const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 const samanSchema = new Schema({
-  name: { type: String, required: true },
+  offense: { type: String, required: true },
 
   date: { type: Date, required: true },
 
