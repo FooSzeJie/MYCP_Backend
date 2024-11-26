@@ -224,6 +224,79 @@ const createParkingTransaction = async (req, res, next) => {
   res.status(201).json({ transaction: createdParkingTransaction });
 };
 
+const createSamanTransaction = async (req, res, next) => {
+  // Validate the inputs
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
+  }
+
+  const { money, date, deliver, creator } = req.body;
+
+  // Create a new parking transaction
+  const createdSamanTransaction = new Transaction({
+    money,
+    date,
+    deliver,
+    status: "out", // Fixed syntax for status assignment
+    creator,
+  });
+
+  let user;
+
+  try {
+    // Find the user by ID
+    user = await User.findById(creator);
+  } catch (e) {
+    return next(
+      new HttpError(
+        "Creating Parking Transaction failed, please try again",
+        500
+      )
+    );
+  }
+
+  if (!user) {
+    return next(new HttpError("User not found", 404));
+  }
+
+  // Deduct money from the user's wallet
+  if (user.wallet < money) {
+    return next(new HttpError("Insufficient funds in wallet", 400));
+  }
+
+  user.wallet -= money;
+
+  try {
+    // Start a session and transaction
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    // Save the new transaction
+    await createdSamanTransaction.save({ session: sess });
+
+    // Add the transaction to the user's transaction history
+    user.transaction_history.push(createdSamanTransaction._id);
+
+    // Save the user with the updated wallet and transaction history
+    await user.save({ session: sess });
+
+    // Commit the transaction
+    await sess.commitTransaction();
+    sess.endSession();
+  } catch (e) {
+    return next(
+      new HttpError("Transaction creation failed, please try again", 500)
+    );
+  }
+
+  res.status(201).json({ transaction: createdSamanTransaction });
+};
+
 const getTransactionByUserId = async (req, res, next) => {
   const userId = req.params.uid;
 
@@ -273,5 +346,6 @@ const getTransactionById = async (req, res, next) => {
 exports.createTopUpTransaction = createTopUpTransaction;
 exports.capturePayment = capturePayment;
 exports.createParkingTransaction = createParkingTransaction;
+exports.createSamanTransaction = createSamanTransaction;
 exports.getTransactionByUserId = getTransactionByUserId;
 exports.getTransactionById = getTransactionById;

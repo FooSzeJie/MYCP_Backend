@@ -14,4 +14,6 @@ router.post("/:uid/paypal/capture", transaction_controller.capturePayment);
 
 router.post("/create", transaction_controller.createParkingTransaction);
 
+router.post("/create/saman", transaction_controller.createSamanTransaction);
+
 module.exports = router;

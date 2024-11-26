@@ -9,13 +9,6 @@ const samanSchema = new Schema({
 
   date: { type: Date, required: true },
 
-  status: {
-    type: String,
-    required: true,
-    enum: ["unpaid", "paid"],
-    default: "unpaid",
-  },
-
   price: {
     type: Number,
     required: true,
@@ -25,8 +18,16 @@ const samanSchema = new Schema({
   },
 
   vehicle: { type: mongoose.Types.ObjectId, require: true, ref: "Vehicle" },
+  // vehicle: { type: String, require: true },
 
   creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
+
+  status: {
+    type: String,
+    required: true,
+    enum: ["unpaid", "paid"],
+    default: "unpaid",
+  },
 });
 
 module.exports = mongoose.model("Saman", samanSchema);

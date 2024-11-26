@@ -28,7 +28,48 @@ const getSamanById = async (req, res, next) => {
   return res.json({ saman: saman.toObject({ getters: true }) });
 };
 
-const getSamanByUserId = async (req, res, next) => {
+const getSamanHistoryByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+  let userWithVehicleSamanHistory;
+  try {
+    // Find the user by ID and populate their vehicles with saman_history
+    userWithVehicleSamanHistory = await User.findById(userId).populate({
+      path: "vehicles", // Populate the vehicles owned by the user
+      populate: {
+        path: "saman_history", // Populate the saman history for each vehicle
+        select: "name date price status", // Include only specific fields from Saman
+      },
+    });
+    if (!userWithVehicleSamanHistory) {
+      return next(new HttpError("User not found", 404));
+    }
+  } catch (e) {
+    console.error("Error fetching vehicle saman history:", e);
+    return next(
+      new HttpError("Fetching saman history failed, please try again", 500)
+    );
+  }
+  // Check if the user has any vehicles
+  if (
+    !userWithVehicleSamanHistory.vehicles ||
+    userWithVehicleSamanHistory.vehicles.length === 0
+  ) {
+    return res.json({ message: "No vehicles or saman history found" });
+  }
+  // Build the response to include vehicle and saman details
+  const response = userWithVehicleSamanHistory.vehicles.map((vehicle) => ({
+    vehicleId: vehicle._id,
+    license_plate: vehicle.license_plate,
+    brand: vehicle.brand,
+    color: vehicle.color,
+    saman_history: vehicle.saman_history.map((saman) =>
+      saman.toObject({ getters: true })
+    ),
+  }));
+  res.json({ vehicles: response });
+};
+
+const getGivenSamanByUserId = async (req, res, next) => {
   const userId = req.params.uid;
 
   let userWithGivenSaman;
@@ -57,90 +98,57 @@ const getSamanByUserId = async (req, res, next) => {
 };
 
 const createSaman = async (req, res, next) => {
-  // Validator the Error
   const errors = validationResult(req);
-
-  // if having error
   if (!errors.isEmpty()) {
-    console.log(errors);
     return next(
       new HttpError("Invalid inputs passed, please check your data", 422)
     );
   }
 
-  const { name, date, license_Plate, creator } = req.body;
-
-  const createdSaman = new Saman({
-    name,
-    date,
-    vehicle: license_Plate,
-    creator,
-  });
-
-  let user;
+  const { name, date, license_plate, creator } = req.body;
 
   try {
-    user = await User.findById(creator);
-    //   user = await User.findById(req.userData.userId);
-  } catch (e) {
-    const error = new HttpError("Creating Saman failed, please try later", 500);
+    // Find the vehicle by license plate
+    const vehicle = await Vehicle.findOne({ license_plate });
+    if (!vehicle) {
+      return next(new HttpError("Vehicle not found", 404));
+    }
 
-    return next(error);
-  }
+    // Create a new saman
+    const createdSaman = new Saman({
+      name,
+      date,
+      vehicle: vehicle._id,
+      creator,
+    });
 
-  if (!user) {
-    const error = new HttpError("User not available", 404);
+    // Find the user
+    const user = await User.findById(creator);
+    if (!user) {
+      return next(new HttpError("User not found", 404));
+    }
 
-    return next(error);
-  }
-
-  let vehicle;
-
-  try {
-    vehicle = await Vehicle.findById(license_Plate);
-  } catch (e) {
-    const error = new HttpError("Creating Saman failed, please try later", 500);
-
-    return next(error);
-  }
-
-  if (!vehicle) {
-    const error = new HttpError("Vehicle not available", 404);
-
-    return next(error);
-  }
-
-  try {
-    // Starting the Session
     const sess = await mongoose.startSession();
-
-    // Starting The Transition
     sess.startTransaction();
 
-    // Store the data into db
+    // Save saman
     await createdSaman.save({ session: sess });
 
-    // Push is one of the mongoose method to store the saman id to user table given_saman attributes
-    user.given_saman.push(createdSaman);
+    // Add saman to user and vehicle history
+    user.given_saman.push(createdSaman._id);
+    vehicle.saman_history.push(createdSaman._id);
 
-    // Store the data to the db by User Model
     await user.save({ session: sess });
-
-    // Push is one of the mongoose method to store the saman id to vehicle table saman_history attributes
-    vehicle.saman_history.push(createdSaman);
-
-    // Store the data to the db by User Model
     await vehicle.save({ session: sess });
 
-    // Submit the Transition, only this step will update the db
     await sess.commitTransaction();
+    sess.endSession();
+
+    return res.status(201).json({ saman: createdSaman });
   } catch (e) {
-    const error = new HttpError("Created Fail !", 500);
-
-    return next(error);
+    console.error("Error creating saman:", e);
+    return next(new HttpError("Failed to create saman, please try again", 500));
   }
-
-  res.status(201).json({ saman: createdSaman });
 };
 
 const paidSaman = async (req, res, next) => {
@@ -188,6 +196,7 @@ const paidSaman = async (req, res, next) => {
 
 // Export the Function
 exports.getSamanById = getSamanById;
-exports.getSamanByUserId = getSamanByUserId;
+exports.getSamanHistoryByUserId = getSamanHistoryByUserId;
+exports.getGivenSamanByUserId = getGivenSamanByUserId;
 exports.createSaman = createSaman;
 exports.paidSaman = paidSaman;
