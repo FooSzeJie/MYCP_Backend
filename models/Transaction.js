@@ -4,6 +4,8 @@ const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 const transactionSchema = new Schema({
+  name: { type: String, required: true },
+
   money: {
     type: Number,
     required: true,

@@ -5,6 +5,7 @@ const Transaction = require("../models/Transaction");
 const HttpError = require("../models/Http_Error");
 const paypal = require("@paypal/checkout-server-sdk");
 const mongoose = require("mongoose");
+const { DateTime } = require("luxon");
 
 const environment =
   process.env.NODE_ENV === "production"
@@ -114,9 +115,13 @@ const capturePayment = async (req, res, next) => {
         return next(new HttpError("User not found", 404));
       }
 
+      // Get the current date and time in Malaysia
+      const malaysiaTime = DateTime.now().setZone("Asia/Kuala_Lumpur").toISO(); // Convert to ISO format for MongoDB compatibility
+
       const createdTransaction = new Transaction({
+        name: "Top Up",
         money: money,
-        date: new Date(),
+        date: malaysiaTime,
         creator: userId,
         status: "in",
       });
@@ -162,10 +167,11 @@ const createParkingTransaction = async (req, res, next) => {
     );
   }
 
-  const { money, date, deliver, creator } = req.body;
+  const { name, money, date, deliver, creator } = req.body;
 
   // Create a new parking transaction
   const createdParkingTransaction = new Transaction({
+    name,
     money,
     date,
     deliver,
@@ -235,10 +241,11 @@ const createSamanTransaction = async (req, res, next) => {
     );
   }
 
-  const { money, date, deliver, creator } = req.body;
+  const { name, money, date, deliver, creator } = req.body;
 
   // Create a new parking transaction
   const createdSamanTransaction = new Transaction({
+    name,
     money,
     date,
     deliver,
@@ -299,22 +306,35 @@ const createSamanTransaction = async (req, res, next) => {
 
 const getTransactionByUserId = async (req, res, next) => {
   const userId = req.params.uid;
+  const { start_date, end_date } = req.query;
+
+  let dateFilter = {};
+  if (start_date) {
+    dateFilter.$gte = new Date(start_date); // Start from the beginning of the day
+  }
+  if (end_date) {
+    const endDate = new Date(end_date);
+    endDate.setUTCHours(23, 59, 59, 999); // Extend to the end of the day
+    dateFilter.$lte = endDate;
+  }
 
   let userWithTransaction;
 
   try {
-    userWithTransaction = await User.findById(userId).populate(
-      "transaction_history"
-    );
+    userWithTransaction = await User.findById(userId).populate({
+      path: "transaction_history",
+      match: {
+        ...(start_date || end_date ? { date: dateFilter } : {}),
+      },
+      options: { sort: { date: -1 } }, // Sort transactions in descending order
+    });
   } catch (e) {
     console.error("Error fetching user:", e);
     return next(new HttpError("Fetching Fail", 404));
   }
 
   if (!userWithTransaction) {
-    const error = new HttpError("The user haven't make any transaction", 500);
-
-    return next(error);
+    return next(new HttpError("The user hasn't made any transactions", 500));
   }
 
   res.json({
