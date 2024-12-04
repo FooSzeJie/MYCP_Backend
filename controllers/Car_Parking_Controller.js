@@ -103,9 +103,10 @@ const checkCarParkingStatus = async (req, res, next) => {
     });
 
     if (!carParkingWithVehicle) {
-      return next(
-        new HttpError("No ongoing car parking found for this vehicle", 404)
-      );
+      // return next(
+      //   new HttpError("No ongoing car parking found for this vehicle", 404)
+      // );
+      return res.status(200).json({ message: "No ongoing car parking found" });
     }
   } catch (e) {
     console.error("Error fetching car parking:", e);
