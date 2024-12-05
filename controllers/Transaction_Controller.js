@@ -115,13 +115,13 @@ const capturePayment = async (req, res, next) => {
         return next(new HttpError("User not found", 404));
       }
 
-      // Get the current date and time in Malaysia
-      const malaysiaTime = DateTime.now().setZone("Asia/Kuala_Lumpur").toISO(); // Convert to ISO format for MongoDB compatibility
+      // Adjust starting time to Malaysia Time (UTC+8)
+      const startTimeMYT = new Date(Date.now() + 8 * 60 * 60 * 1000);
 
       const createdTransaction = new Transaction({
         name: "Top Up",
         money: money,
-        date: malaysiaTime,
+        date: startTimeMYT,
         creator: userId,
         status: "in",
       });
@@ -167,13 +167,16 @@ const createParkingTransaction = async (req, res, next) => {
     );
   }
 
-  const { name, money, date, deliver, creator } = req.body;
+  const { name, money, deliver, creator } = req.body;
+
+  // Adjust starting time to Malaysia Time (UTC+8)
+  const startTimeMYT = new Date(Date.now() + 8 * 60 * 60 * 1000);
 
   // Create a new parking transaction
   const createdParkingTransaction = new Transaction({
     name,
     money,
-    date,
+    date: startTimeMYT,
     deliver,
     status: "out", // Fixed syntax for status assignment
     creator,
@@ -243,11 +246,14 @@ const createSamanTransaction = async (req, res, next) => {
 
   const { name, money, date, deliver, creator } = req.body;
 
+  // Adjust starting time to Malaysia Time (UTC+8)
+  const startTimeMYT = new Date(Date.now() + 8 * 60 * 60 * 1000);
+
   // Create a new parking transaction
   const createdSamanTransaction = new Transaction({
     name,
     money,
-    date,
+    date: startTimeMYT,
     deliver,
     status: "out", // Fixed syntax for status assignment
     creator,

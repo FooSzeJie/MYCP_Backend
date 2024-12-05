@@ -14,7 +14,7 @@ const samanSchema = new Schema({
     required: true,
     get: (v) => v / 100,
     set: (v) => Math.round(v * 100),
-    default: 50,
+    default: 30,
   },
 
   vehicle: { type: mongoose.Types.ObjectId, require: true, ref: "Vehicle" },

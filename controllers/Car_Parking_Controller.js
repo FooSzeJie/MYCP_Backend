@@ -143,15 +143,18 @@ const createCarParking = async (req, res, next) => {
   }
 
   // Set the startTime to UTC explicitly (just as a best practice)
-  const startTimeUtc = new Date(startTime.toISOString());
+  // const startTimeUtc = new Date(startTime.toISOString());
+  // Adjust starting time to Malaysia Time (UTC+8)
+  const startTimeMYT = new Date(startTime.getTime() + 8 * 60 * 60 * 1000);
 
   // Calculate the end time by adding the duration in minutes, keeping it in UTC
-  const end_time = new Date(startTimeUtc.getTime() + duration * 60 * 1000);
+  // const end_time = new Date(startTimeUtc.getTime() + duration * 60 * 1000);
+  const end_time = new Date(startTimeMYT.getTime() + duration * 60 * 1000);
 
   // Create Car Parking
   const createdCarParking = new Car_Parking({
-    starting_time: startTimeUtc,
-    end_time: new Date(end_time.toISOString()), // Ensure end_time is also in UTC
+    starting_time: startTimeMYT,
+    end_time: end_time.toISOString(), // Ensure end_time is also in UTC
     duration,
     local_authority,
     vehicle,

@@ -105,7 +105,7 @@ const createSaman = async (req, res, next) => {
     );
   }
 
-  const { offense, date, license_plate, creator } = req.body;
+  const { offense, license_plate, creator } = req.body;
 
   try {
     // Find the vehicle by license plate
@@ -114,10 +114,13 @@ const createSaman = async (req, res, next) => {
       return next(new HttpError("Vehicle not found", 404));
     }
 
+    // Adjust starting time to Malaysia Time (UTC+8)
+    const startTimeMYT = new Date(Date.now() + 8 * 60 * 60 * 1000);
+
     // Create a new saman
     const createdSaman = new Saman({
       offense,
-      date,
+      date: startTimeMYT,
       vehicle: vehicle._id,
       creator,
     });
