@@ -35,7 +35,7 @@ router.patch(
   vehicle_controller.updateVehicleById
 );
 
-router.delete("/:vid/delete", vehicle_controller.deleteVehicleById);
+router.delete("/:uid/:vid/delete", vehicle_controller.deleteVehicleById);
 
 // Export the Function
 module.exports = router;

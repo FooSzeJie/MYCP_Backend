@@ -59,10 +59,8 @@ const getVehicleById = async (req, res, next) => {
 
 // Create Vehicle Function
 const createVehicle = async (req, res, next) => {
-  // Validator the Error
+  // Validate errors
   const errors = validationResult(req);
-
-  // if having error
   if (!errors.isEmpty()) {
     console.log(errors);
     return next(
@@ -72,62 +70,73 @@ const createVehicle = async (req, res, next) => {
 
   const { license_plate, brand, color, creator } = req.body;
 
-  const createdVehicle = new Vehicle({
-    license_plate, // title : title;
-    brand,
-    color,
-    creator,
-    // creator: req.userData.userId,
-  });
-
+  let vehicle;
   let user;
 
   try {
-    user = await User.findById(creator);
-    //   user = await User.findById(req.userData.userId);
+    // Find a matching vehicle
+    vehicle = await Vehicle.findOne({ license_plate, brand, color });
   } catch (e) {
-    const error = new HttpError(
-      "Creating Vehicle failed, please try later",
-      500
+    console.error("Error finding vehicle:", e);
+    return next(
+      new HttpError("Vehicle lookup failed, please try again later", 500)
     );
-
-    return next(error);
   }
-
-  if (!user) {
-    const error = new HttpError("User not available", 404);
-
-    return next(error);
-  }
-
-  console.log(user);
 
   try {
-    // sess === session
-    // Starting the Session
-    const sess = await mongoose.startSession();
-
-    // Starting The Transition
-    sess.startTransaction();
-
-    // Store the data into db
-    await createdVehicle.save({ session: sess });
-
-    // Push is one of the mongoose method to store the vehicle id to user table vehicle attributes
-    user.vehicles.push(createdVehicle);
-
-    // Store the data to the db by User Model
-    await user.save({ session: sess });
-
-    // Submit the Transition, only this step will update the db
-    await sess.commitTransaction();
+    // Find the user
+    user = await User.findById(creator);
+    if (!user) {
+      return next(new HttpError("User not available", 404));
+    }
   } catch (e) {
-    const error = new HttpError("Created Fail !", 500);
-
-    return next(error);
+    console.error("Error finding user:", e);
+    return next(
+      new HttpError("User lookup failed, please try again later", 500)
+    );
   }
 
-  res.status(201).json({ vehicle: createdVehicle });
+  const sess = await mongoose.startSession();
+  sess.startTransaction();
+
+  try {
+    if (vehicle) {
+      // Vehicle exists, associate it with the new user
+      if (!user.vehicles.includes(vehicle._id)) {
+        user.vehicles.push(vehicle._id);
+        vehicle.creator.push(creator);
+        await user.save({ session: sess });
+        await vehicle.save({ session: sess });
+      }
+    } else {
+      // Vehicle does not exist, create a new one
+      const createdVehicle = new Vehicle({
+        license_plate,
+        brand,
+        color,
+        creator,
+      });
+
+      // Save the new vehicle
+      await createdVehicle.save({ session: sess });
+
+      // Add to user's vehicles
+      user.vehicles.push(createdVehicle._id);
+      await user.save({ session: sess });
+
+      vehicle = createdVehicle;
+    }
+
+    // Commit the transaction
+    await sess.commitTransaction();
+    sess.endSession();
+  } catch (e) {
+    await sess.abortTransaction();
+    console.error("Error during transaction:", e);
+    return next(new HttpError("Failed to create or link vehicle", 500));
+  }
+
+  res.status(201).json({ vehicle });
 };
 
 // Update Vehicle Function
@@ -183,51 +192,76 @@ const updateVehicleById = async (req, res, next) => {
 
 // Delete Vehicle Function
 const deleteVehicleById = async (req, res, next) => {
-  // Get the vehicle id from the path
   const vehicleId = req.params.vid;
+  const userId = req.params.uid;
 
-  let vehicle;
-
-  try {
-    // Find the data by id
-    vehicle = await Vehicle.findById(vehicleId).populate("creator");
-  } catch (e) {
-    const error = new HttpError(
-      "Something went wrong, could not delete vehicle",
-      500
-    );
-
-    return next(error);
-  }
-
-  // Check the vehicle whether exists or not
-  if (!vehicle) {
-    return next(new HttpError("Vehicle is not Found", 404));
-  }
+  let vehicle, user;
 
   try {
-    const sess = await mongoose.startSession();
-    sess.startTransaction();
+    vehicle = await Vehicle.findById(vehicleId);
+    user = await User.findById(userId);
 
-    // Delete the data
-    await vehicle.deleteOne({ session: sess });
-    // await sess.deleteOne({ _id: vehicleId });
+    if (!vehicle) {
+      return next(new HttpError("Vehicle not found", 404));
+    }
 
-    vehicle.creator.vehicles.pull(vehicle);
+    if (!user) {
+      return next(new HttpError("User not found", 404));
+    }
 
-    await vehicle.creator.save({ session: sess });
-
-    await sess.commitTransaction();
+    if (!vehicle.creator.includes(userId)) {
+      return next(
+        new HttpError("You are not authorized to delete this vehicle", 403)
+      );
+    }
   } catch (e) {
-    const error = new HttpError(
-      "Something Went wrong, could not delete vehicle",
-      500
+    return next(
+      new HttpError("Something went wrong, could not process request", 500)
     );
-
-    return next(error);
   }
 
-  res.status(200).json({ message: "Delete vehicle" });
+  let retryAttempts = 3;
+  while (retryAttempts > 0) {
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      // Remove user from vehicle.creator array
+      vehicle.creator.pull(userId);
+      await vehicle.save({ session });
+
+      // Remove vehicle ID from user.vehicles array
+      user.vehicles.pull(vehicleId);
+      await user.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // Break out of retry loop after successful transaction
+      retryAttempts = 0;
+
+      return res
+        .status(200)
+        .json({ message: "Vehicle unlinked from user successfully" });
+    } catch (e) {
+      await session.abortTransaction();
+      session.endSession();
+
+      console.error("Transaction error:", e);
+
+      if (
+        retryAttempts === 1 ||
+        !e.errorLabels?.includes("TransientTransactionError")
+      ) {
+        return next(
+          new HttpError("Failed to delete vehicle, please try again", 500)
+        );
+      }
+
+      console.log("Retrying transaction...");
+      retryAttempts--;
+    }
+  }
 };
 
 // Export the Function

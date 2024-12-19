@@ -12,7 +12,7 @@ const vehicleSchema = new Schema({
 
   color: { type: String, required: true },
 
-  creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
+  creator: [{ type: mongoose.Types.ObjectId, require: true, ref: "User" }],
 
   saman_history: [
     {
