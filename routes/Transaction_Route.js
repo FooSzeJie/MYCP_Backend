@@ -4,6 +4,8 @@ const transaction_controller = require("../controllers/Transaction_Controller");
 
 const router = express.Router();
 
+router.get("/daily_income", transaction_controller.getDailyIncome);
+
 router.get("/:uid/list", transaction_controller.getTransactionByUserId);
 
 router.get("/:tid/detail", transaction_controller.getTransactionById);

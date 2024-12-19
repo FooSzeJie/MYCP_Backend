@@ -310,6 +310,37 @@ const createSamanTransaction = async (req, res, next) => {
   res.status(201).json({ transaction: createdSamanTransaction });
 };
 
+const getDailyIncome = async (req, res, next) => {
+  let transactionList;
+
+  try {
+    // Fetch all transactions
+    transactionList = await Transaction.find();
+  } catch (e) {
+    return next(new HttpError("Transaction not found", 404));
+  }
+
+  if (!transactionList || transactionList.length === 0) {
+    return next(new HttpError("Transaction not found", 404));
+  }
+
+  // Group transactions by date for status "in"
+  const incomeByDate = transactionList.reduce((acc, transaction) => {
+    if (transaction.status === "in") {
+      const date = transaction.date.toISOString().split("T")[0]; // Format date as YYYY-MM-DD
+      acc[date] = (acc[date] || 0) + transaction.money; // Sum income by date
+    }
+    return acc;
+  }, {});
+
+  res.json({
+    dailyIncome: Object.keys(incomeByDate).map((date) => ({
+      date,
+      income: incomeByDate[date],
+    })),
+  });
+};
+
 const getTransactionByUserId = async (req, res, next) => {
   const userId = req.params.uid;
   const { start_date, end_date } = req.query;
@@ -373,5 +404,6 @@ exports.createTopUpTransaction = createTopUpTransaction;
 exports.capturePayment = capturePayment;
 exports.createParkingTransaction = createParkingTransaction;
 exports.createSamanTransaction = createSamanTransaction;
+exports.getDailyIncome = getDailyIncome;
 exports.getTransactionByUserId = getTransactionByUserId;
 exports.getTransactionById = getTransactionById;
