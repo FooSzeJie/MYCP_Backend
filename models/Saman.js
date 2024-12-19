@@ -22,6 +22,13 @@ const samanSchema = new Schema({
 
   creator: { type: mongoose.Types.ObjectId, require: true, ref: "User" },
 
+  local_authority: {
+    // type: mongoose.Types.ObjectId,
+    type: String,
+    require: true,
+    ref: "Local_Authority",
+  },
+
   status: {
     type: String,
     required: true,

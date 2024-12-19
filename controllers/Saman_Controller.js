@@ -120,6 +120,7 @@ const createSaman = async (req, res, next) => {
     // Create a new saman
     const createdSaman = new Saman({
       offense,
+      local_authority: "MBJB",
       date: startTimeMYT,
       vehicle: vehicle._id,
       creator,
