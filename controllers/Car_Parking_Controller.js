@@ -133,7 +133,7 @@ const createCarParking = async (req, res, next) => {
   }
 
   // Get the data from frontend
-  const { starting_time, duration, local_authority, vehicle, creator } =
+  const { starting_time, duration, local_authority, vehicle, creator, price } =
     req.body;
 
   // Ensure starting_time is converted to a Date object in UTC
@@ -174,82 +174,98 @@ const createCarParking = async (req, res, next) => {
     return next(new HttpError("User not available", 404));
   }
 
-  try {
-    // Start a session
-    const sess = await mongoose.startSession();
-    sess.startTransaction();
+  if (user.wallet > price) {
+    try {
+      // Start a session
+      const sess = await mongoose.startSession();
+      sess.startTransaction();
 
-    // Save the new car parking entry
-    await createdCarParking.save({ session: sess });
+      // Save the new car parking entry
+      await createdCarParking.save({ session: sess });
 
-    // Push the car parking ID to the user's parking history
-    user.parking_history.push(createdCarParking);
+      // Push the car parking ID to the user's parking history
+      user.parking_history.push(createdCarParking);
 
-    // Save the user with the updated parking history
-    await user.save({ session: sess });
+      // Save the user with the updated parking history
+      await user.save({ session: sess });
 
-    // Commit the transaction to persist the changes
-    await sess.commitTransaction();
-    sess.endSession();
-  } catch (e) {
-    console.error("Error during transaction:", e);
-    return next(new HttpError("Creation failed, please try again", 500));
+      // Commit the transaction to persist the changes
+      await sess.commitTransaction();
+      sess.endSession();
+
+      res.status(201).json({ Car_Parking: createdCarParking });
+    } catch (e) {
+      console.error("Error during transaction:", e);
+      return next(new HttpError("Creation failed, please try again", 500));
+    }
+  } else {
+    return next(new HttpError("Insufficient balance", 403));
   }
-
-  res.status(201).json({ Car_Parking: createdCarParking });
 };
 
 // Extend the Car Parking
 const extendCarParking = async (req, res, next) => {
-  // validator the Error
+  // Validate the input errors
   const errors = validationResult(req);
-
-  // If having Error
   if (!errors.isEmpty()) {
-    const error = new HttpError(
-      "Invalid inputs passed, please check your data.",
-      422
+    return next(
+      new HttpError("Invalid inputs passed, please check your data.", 422)
     );
-
-    return next(error);
   }
 
   const carParkingId = req.params.cpid;
+  const { duration, price } = req.body;
 
-  const { duration } = req.body;
+  let carParking, creator;
 
-  let carParking;
+  const sess = await mongoose.startSession();
+  sess.startTransaction();
 
   try {
     // Find the car parking entry by ID
-    carParking = await Car_Parking.findById(carParkingId);
+    carParking = await Car_Parking.findById(carParkingId)
+      .populate("creator")
+      .session(sess);
+
+    if (!carParking) {
+      return next(new HttpError("Car Parking entry not found!", 404));
+    }
+
+    // Get the creator from the populated carParking
+    creator = carParking.creator;
+
+    if (!creator || creator.wallet < price) {
+      return next(new HttpError("Insufficient wallet balance.", 400));
+    }
+
+    // Calculate the new end time based on the existing end_time
+    const currentEndTime = new Date(carParking.end_time);
+    const newEndTime = new Date(
+      currentEndTime.getTime() + duration * 60 * 1000
+    ); // Add duration in milliseconds
+
+    // Update the car parking details
+    carParking.duration += duration;
+    carParking.end_time = newEndTime;
+
+    // Save both carParking and creator
+    await carParking.save({ session: sess });
+    await creator.save({ session: sess });
+
+    await sess.commitTransaction();
+    sess.endSession();
+
+    res
+      .status(200)
+      .json({ carParking: carParking.toObject({ getters: true }) });
   } catch (e) {
-    const error = new HttpError("Not Found !", 404);
-
-    return next(error);
-  }
-
-  // Calculate the new end time based on the existing end_time
-  const currentEndTime = new Date(carParking.end_time);
-  const newEndTime = new Date(currentEndTime.getTime() + duration * 60 * 1000); // Add duration in milliseconds
-
-  // Update The new item
-  carParking.duration += duration;
-  carParking.end_time = newEndTime;
-
-  try {
-    // Update the data
-    await carParking.save();
-  } catch (e) {
-    const error = new HttpError(
-      "Something went wrong, could not update duration.",
-      500
+    await sess.abortTransaction();
+    sess.endSession();
+    console.error("Transaction error:", e);
+    return next(
+      new HttpError("Something went wrong, could not extend parking.", 500)
     );
-
-    return next(error);
   }
-
-  res.status(200).json({ carParking: carParking.toObject({ getters: true }) });
 };
 
 // Terminate the Car Parking
