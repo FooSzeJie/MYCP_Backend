@@ -30,6 +30,8 @@ router.get("/list", user_controller.showUser);
 
 router.get("/:uid/profile", user_controller.getUserId);
 
+router.get("/:uid/default_vehicle", user_controller.getUserDefaultVehicle);
+
 router.patch(
   "/:uid/profile/update",
   [

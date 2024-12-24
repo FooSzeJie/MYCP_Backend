@@ -288,6 +288,35 @@ const getUserById = async (req, res, next) => {
   return res.json({ user: user.toObject({ getters: true }) });
 };
 
+// Get Users with Id
+const getUserDefaultVehicle = async (req, res, next) => {
+  const userId = req.params.uid;
+
+  let user;
+
+  try {
+    // Fetch user and populate the default_vehicle field
+    user = await User.findById(userId).populate("default_vehicle");
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, The user is not found",
+      500
+    );
+    throw error;
+  }
+
+  if (!user) {
+    const error = new HttpError(
+      "Could not find a user for the provided id",
+      404
+    );
+    return next(error);
+  }
+
+  // Return the user as a plain object with populated data
+  return res.json({ user: user.toObject({ getters: true }) });
+};
+
 // Update the Users with id
 const updateProfile = async (req, res, next) => {
   // Check the input data
@@ -415,5 +444,6 @@ exports.login = login;
 exports.adminLogin = adminLogin;
 exports.showUser = showUser;
 exports.getUserId = getUserById;
+exports.getUserDefaultVehicle = getUserDefaultVehicle;
 exports.updateProfile = updateProfile;
 exports.sendEmail = sendEmail;

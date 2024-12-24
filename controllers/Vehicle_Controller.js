@@ -68,7 +68,7 @@ const createVehicle = async (req, res, next) => {
     );
   }
 
-  const { license_plate, brand, color, creator } = req.body;
+  const { license_plate, brand, color, creator, default_vehicle } = req.body;
 
   let vehicle;
   let user;
@@ -105,6 +105,11 @@ const createVehicle = async (req, res, next) => {
       if (!user.vehicles.includes(vehicle._id)) {
         user.vehicles.push(vehicle._id);
         vehicle.creator.push(creator);
+
+        if (default_vehicle) {
+          user.default_vehicle = vehicle._id;
+        }
+
         await user.save({ session: sess });
         await vehicle.save({ session: sess });
       }
@@ -122,6 +127,12 @@ const createVehicle = async (req, res, next) => {
 
       // Add to user's vehicles
       user.vehicles.push(createdVehicle._id);
+
+      // Set as default vehicle if specified
+      if (default_vehicle) {
+        user.default_vehicle = createdVehicle._id;
+      }
+
       await user.save({ session: sess });
 
       vehicle = createdVehicle;
@@ -141,53 +152,103 @@ const createVehicle = async (req, res, next) => {
 
 // Update Vehicle Function
 const updateVehicleById = async (req, res, next) => {
-  // validator the Error
+  // Validate the input errors
   const errors = validationResult(req);
-
-  // If having Error
   if (!errors.isEmpty()) {
-    const error = new HttpError(
-      "Invalid inputs passed, please check your data.",
-      422
+    return next(
+      new HttpError("Invalid inputs passed, please check your data.", 422)
     );
-
-    return next(error);
   }
 
   const vehicleId = req.params.vid;
+  const { license_plate, brand, color, creator, default_vehicle } = req.body;
 
-  const { license_plate, brand, color } = req.body;
+  let vehicleToUpdate;
+  let user;
 
-  let vehicle;
-
-  try {
-    // Find the vehicle by id
-    vehicle = await Vehicle.findById(vehicleId);
-  } catch (e) {
-    const error = new HttpError("Not Found !", 404);
-
-    return next(error);
-  }
-
-  // Update the new item
-  vehicle.license_plate = license_plate;
-  vehicle.brand = brand;
-  vehicle.color = color;
+  const sess = await mongoose.startSession();
+  sess.startTransaction();
 
   try {
-    // Update the data
-    await vehicle.save();
+    // Find the vehicle by ID
+    vehicleToUpdate = await Vehicle.findById(vehicleId).session(sess);
+    if (!vehicleToUpdate) {
+      return next(new HttpError("Vehicle not found!", 404));
+    }
+
+    // Find the user
+    user = await User.findById(creator)
+      .populate("default_vehicle")
+      .session(sess);
+    if (!user) {
+      return next(new HttpError("User not found!", 404));
+    }
+
+    // Check for existing vehicle with same attributes
+    const existingVehicle = await Vehicle.findOne({
+      license_plate,
+      brand,
+      color,
+    }).session(sess);
+
+    if (existingVehicle) {
+      if (existingVehicle._id.toString() !== vehicleId) {
+        // A different vehicle matches the updated attributes
+        vehicleToUpdate.creator.pull(creator); // Remove the current user from the old vehicle
+        if (!existingVehicle.creator.includes(creator)) {
+          existingVehicle.creator.push(creator);
+        }
+
+        // Update the user's vehicles and default_vehicle if specified
+        user.vehicles = user.vehicles.filter(
+          (vId) => vId.toString() !== vehicleId
+        );
+        user.vehicles.push(existingVehicle._id);
+
+        if (default_vehicle) {
+          user.default_vehicle = existingVehicle._id;
+        } else {
+          // Clear the default if the updated vehicle was default
+          user.default_vehicle = null;
+        }
+
+        await existingVehicle.save({ session: sess });
+        await user.save({ session: sess });
+        await vehicleToUpdate.deleteOne({ session: sess }); // Delete old vehicle
+        await sess.commitTransaction();
+
+        return res.status(200).json({
+          message:
+            "Vehicle attributes matched an existing vehicle. Updated associations.",
+        });
+      }
+    }
+
+    // Update the current vehicle
+    vehicleToUpdate.license_plate = license_plate;
+    vehicleToUpdate.brand = brand;
+    vehicleToUpdate.color = color;
+
+    // Handle default vehicle logic
+    if (default_vehicle) {
+      user.default_vehicle = vehicleToUpdate._id;
+    } else {
+      // Clear default if explicitly unset
+      user.default_vehicle = null;
+    }
+
+    await vehicleToUpdate.save({ session: sess });
+    await user.save({ session: sess });
+    await sess.commitTransaction();
+
+    res.status(200).json({ vehicle: vehicleToUpdate });
   } catch (e) {
-    const error = new HttpError(
-      "Something went wrong, could not update place.",
-      500
-    );
-
-    return next(error);
+    await sess.abortTransaction();
+    console.error("Transaction error:", e);
+    return next(new HttpError("Something went wrong during the update.", 500));
+  } finally {
+    sess.endSession();
   }
-
-  // result
-  res.status(200).json({ vehicle: vehicle.toObject({ getters: true }) });
 };
 
 // Delete Vehicle Function

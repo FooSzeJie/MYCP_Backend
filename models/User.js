@@ -38,6 +38,12 @@ const userSchema = new Schema({
 
   vehicles: [{ type: mongoose.Types.ObjectId, required: true, ref: "Vehicle" }],
 
+  default_vehicle: {
+    type: mongoose.Types.ObjectId,
+    ref: "Vehicle",
+    default: null, // Set default as null if no vehicle is set as default
+  },
+
   parking_history: [
     { type: mongoose.Types.ObjectId, required: true, ref: "Car_Parking" },
   ],
