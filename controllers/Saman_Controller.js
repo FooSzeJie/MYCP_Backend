@@ -4,6 +4,7 @@ const { validationResult } = require("express-validator");
 const Saman = require("../models/Saman");
 const Vehicle = require("../models/Vehicle");
 const User = require("../models/User");
+const Local_Auhtority = require("../models/Local_Authority");
 const HttpError = require("../models/Http_Error");
 
 const mongoose = require("mongoose");
@@ -31,15 +32,21 @@ const getSamanById = async (req, res, next) => {
 const getSamanHistoryByUserId = async (req, res, next) => {
   const userId = req.params.uid;
   let userWithVehicleSamanHistory;
+
   try {
-    // Find the user by ID and populate their vehicles with saman_history
+    // Find the user by ID and populate their vehicles with saman_history and local authority nickname
     userWithVehicleSamanHistory = await User.findById(userId).populate({
-      path: "vehicles", // Populate the vehicles owned by the user
+      path: "vehicles",
       populate: {
-        path: "saman_history", // Populate the saman history for each vehicle
-        select: "offense date price status", // Include only specific fields from Saman
+        path: "saman_history",
+        populate: {
+          path: "local_authority", // Populate the local_authority field within saman
+          select: "nickname", // Include only the nickname of the local authority
+        },
+        select: "offense date price status local_authority",
       },
     });
+
     if (!userWithVehicleSamanHistory) {
       return next(new HttpError("User not found", 404));
     }
@@ -49,6 +56,7 @@ const getSamanHistoryByUserId = async (req, res, next) => {
       new HttpError("Fetching saman history failed, please try again", 500)
     );
   }
+
   // Check if the user has any vehicles
   if (
     !userWithVehicleSamanHistory.vehicles ||
@@ -56,16 +64,21 @@ const getSamanHistoryByUserId = async (req, res, next) => {
   ) {
     return res.json({ message: "No vehicles or saman history found" });
   }
-  // Build the response to include vehicle and saman details
+
+  // Build the response to include vehicle and saman details with local authority nickname
   const response = userWithVehicleSamanHistory.vehicles.map((vehicle) => ({
     vehicleId: vehicle._id,
     license_plate: vehicle.license_plate,
     brand: vehicle.brand,
     color: vehicle.color,
-    saman_history: vehicle.saman_history.map((saman) =>
-      saman.toObject({ getters: true })
-    ),
+    saman_history: vehicle.saman_history.map((saman) => ({
+      ...saman.toObject({ getters: true }),
+      local_authority: saman.local_authority
+        ? saman.local_authority.nickname
+        : "Unknown", // Show nickname if available, otherwise fallback to "Unknown"
+    })),
   }));
+
   res.json({ vehicles: response });
 };
 
@@ -105,50 +118,70 @@ const createSaman = async (req, res, next) => {
     );
   }
 
-  const { offense, license_plate, creator } = req.body;
+  const { offense, license_plate, creator, local_authority } = req.body;
+
+  let localAuthority;
 
   try {
-    // Find the vehicle by license plate
-    const vehicle = await Vehicle.findOne({ license_plate });
+    // Find the vehicle and user by their respective identifiers
+    const [vehicle, user] = await Promise.all([
+      Vehicle.findOne({ license_plate }),
+      User.findById(creator),
+    ]);
+
+    localAuthority = await Local_Auhtority.findById(local_authority);
+
     if (!vehicle) {
       return next(new HttpError("Vehicle not found", 404));
     }
 
-    // Adjust starting time to Malaysia Time (UTC+8)
-    const startTimeMYT = new Date(Date.now() + 8 * 60 * 60 * 1000);
-
-    // Create a new saman
-    const createdSaman = new Saman({
-      offense,
-      local_authority: "MBJB",
-      date: startTimeMYT,
-      vehicle: vehicle._id,
-      creator,
-    });
-
-    // Find the user
-    const user = await User.findById(creator);
     if (!user) {
       return next(new HttpError("User not found", 404));
     }
 
+    // Adjust starting time to Malaysia Time (UTC+8)
+    const startTimeMYT = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+
+    // Create the saman document
+    const createdSaman = new Saman({
+      offense,
+      local_authority: localAuthority, // Hardcoded as an example; consider dynamic input
+      date: startTimeMYT,
+      price: 30, // Example: Default saman price
+      vehicle: vehicle._id,
+      creator,
+    });
+
     const sess = await mongoose.startSession();
     sess.startTransaction();
 
-    // Save saman
-    await createdSaman.save({ session: sess });
+    try {
+      // Save the saman
+      await createdSaman.save({ session: sess });
 
-    // Add saman to user and vehicle history
-    user.given_saman.push(createdSaman._id);
-    vehicle.saman_history.push(createdSaman._id);
+      // Update user's saman history and deduct wallet balance
+      user.given_saman.push(createdSaman._id);
 
-    await user.save({ session: sess });
-    await vehicle.save({ session: sess });
+      // Update vehicle's saman history
+      vehicle.saman_history.push(createdSaman._id);
 
-    await sess.commitTransaction();
-    sess.endSession();
+      // Save updated entities
+      await Promise.all([
+        user.save({ session: sess }),
+        vehicle.save({ session: sess }),
+      ]);
 
-    return res.status(201).json({ saman: createdSaman });
+      // Commit transaction
+      await sess.commitTransaction();
+      sess.endSession();
+
+      return res.status(201).json({ saman: createdSaman });
+    } catch (transactionError) {
+      await sess.abortTransaction();
+      sess.endSession();
+      console.error("Transaction failed:", transactionError);
+      throw transactionError;
+    }
   } catch (e) {
     console.error("Error creating saman:", e);
     return next(new HttpError("Failed to create saman, please try again", 500));

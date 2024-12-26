@@ -11,6 +11,10 @@ const localAuthoritySchema = new Schema({
   no_telephone: { type: Number, required: true, unique: true },
   area: { type: String, required: true },
   state: { type: String, required: true },
+  car_parking: [
+    { type: mongoose.Types.ObjectId, required: true, ref: "Car_Parking" },
+  ],
+  saman: [{ type: mongoose.Types.ObjectId, required: true, ref: "Saman" }],
 });
 
 // Use the Validator function

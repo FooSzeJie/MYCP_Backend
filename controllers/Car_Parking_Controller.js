@@ -2,6 +2,7 @@ const { validationResult } = require("express-validator");
 
 // Import Model
 const User = require("../models/User");
+const Local_Authority = require("../models/Local_Authority");
 const Vehicle = require("../models/Vehicle");
 const Car_Parking = require("../models/Car_Parking");
 const HttpError = require("../models/Http_Error");
@@ -80,7 +81,7 @@ const checkCarParkingStatus = async (req, res, next) => {
     );
   }
 
-  const { license_plate, brand, color } = req.body; // Assuming these details are sent in the request body
+  const { license_plate, brand, color, local_authority } = req.body; // Assuming these details are sent in the request body
 
   let carParkingWithVehicle;
 
@@ -99,6 +100,7 @@ const checkCarParkingStatus = async (req, res, next) => {
     // Find car parking associated with the vehicle
     carParkingWithVehicle = await Car_Parking.findOne({
       vehicle: vehicle._id,
+      local_authority,
       status: "ongoing", // Only check for ongoing car parking
     });
 
@@ -161,10 +163,11 @@ const createCarParking = async (req, res, next) => {
     creator,
   });
 
-  let user;
+  let user, localAuthoriy;
 
   try {
     user = await User.findById(creator);
+    localAuthoriy = await Local_Authority.findById(local_authority);
   } catch (e) {
     console.error("Error finding user:", e);
     return next(new HttpError("Parking failed, please try later", 500));
@@ -188,6 +191,12 @@ const createCarParking = async (req, res, next) => {
 
       // Save the user with the updated parking history
       await user.save({ session: sess });
+
+      // Push the car parking ID to the local authority's car parking
+      localAuthoriy.car_parking.push(createdCarParking);
+
+      // Save the user with the updated parking history
+      await localAuthoriy.save({ session: sess });
 
       // Commit the transaction to persist the changes
       await sess.commitTransaction();
