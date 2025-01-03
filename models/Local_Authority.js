@@ -9,6 +9,18 @@ const localAuthoritySchema = new Schema({
   nickname: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   no_telephone: { type: Number, required: true, unique: true },
+  income: {
+    type: Number,
+    default: 0,
+    get: (v) => v / 100,
+    set: (v) => Math.round(v * 100),
+  },
+  total_income: {
+    type: Number,
+    default: 0,
+    get: (v) => v / 100,
+    set: (v) => Math.round(v * 100),
+  },
   area: { type: String, required: true },
   state: { type: String, required: true },
   car_parking: [

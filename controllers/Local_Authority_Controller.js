@@ -202,9 +202,54 @@ const deleteLocalAuthority = async (req, res, next) => {
   res.status(200).json({ message: "Deleted Local Authority" });
 };
 
+const paidIncome = async (req, res, next) => {
+  // validator the Error
+  const errors = validationResult(req);
+
+  // If having Error
+  if (!errors.isEmpty()) {
+    const error = new HttpError(
+      "Invalid inputs passed, please check your data.",
+      422
+    );
+
+    return next(error);
+  }
+
+  const localAuthorityId = req.params.laid;
+
+  let localAuthority;
+
+  try {
+    localAuthority = await Local_Authority.findById(localAuthorityId);
+  } catch (e) {
+    return next(
+      new HttpError("Something went wrong, could not find local authority", 500)
+    );
+  }
+
+  localAuthority.income = 0;
+
+  try {
+    // Update the localAuthority income
+    await localAuthority.save();
+  } catch (e) {
+    const error = new HttpError(
+      "Something went wrong, could not update duration.",
+      500
+    );
+    return next(error);
+  }
+
+  res
+    .status(200)
+    .json({ localAuthority: localAuthority.toObject({ getters: true }) });
+};
+
 // Export the Function
 exports.getLocalAuthority = getLocalAuthority;
 exports.getLocalAuthorityById = getLocalAuthorityById;
 exports.createLocalAuthority = createLocalAuthority;
 exports.updateLocalAuthority = updateLocalAuthority;
 exports.deleteLocalAuthority = deleteLocalAuthority;
+exports.paidIncome = paidIncome;

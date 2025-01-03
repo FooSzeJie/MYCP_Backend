@@ -178,6 +178,9 @@ const createCarParking = async (req, res, next) => {
   }
 
   if (user.wallet > price) {
+    localAuthoriy.income += price;
+    localAuthoriy.total_income += price;
+
     try {
       // Start a session
       const sess = await mongoose.startSession();

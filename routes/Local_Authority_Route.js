@@ -46,4 +46,6 @@ router.patch(
 
 router.delete("/:laid/delete", local_Authority_controller.deleteLocalAuthority);
 
+router.patch("/:laid/paid", local_Authority_controller.paidIncome);
+
 module.exports = router;
