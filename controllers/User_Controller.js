@@ -373,6 +373,48 @@ const updateProfile = async (req, res, next) => {
   res.status(200).json({ user: user.toObject({ getters: true }) });
 };
 
+// Update the Users with id
+const updateAdminProfile = async (req, res, next) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
+  }
+
+  const { name, no_telephone, role } = req.body; // Include `role` in the request body
+  const userId = req.params.uid;
+
+  let user;
+
+  try {
+    user = await User.findById(userId); // Find the user by ID
+  } catch (e) {
+    return next(
+      new HttpError("Something went wrong, could not update the user", 500)
+    );
+  }
+
+  if (!user) {
+    return next(new HttpError("User not found", 404));
+  }
+
+  // Update user properties
+  user.name = name;
+  user.no_telephone = no_telephone;
+  user.role = role; // Update role only if provided
+
+  try {
+    await user.save(); // Save changes
+  } catch (e) {
+    console.log(e);
+    return next(new HttpError("Saving changes failed, please try again", 500));
+  }
+
+  res.status(200).json({ user: user.toObject({ getters: true }) });
+};
+
 // Send the Email
 const sendEmail = async (req, res, next) => {
   // Check the input data
@@ -446,4 +488,5 @@ exports.showUser = showUser;
 exports.getUserId = getUserById;
 exports.getUserDefaultVehicle = getUserDefaultVehicle;
 exports.updateProfile = updateProfile;
+exports.updateAdminProfile = updateAdminProfile;
 exports.sendEmail = sendEmail;

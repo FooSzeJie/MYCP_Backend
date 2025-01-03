@@ -45,6 +45,15 @@ router.patch(
   user_controller.updateProfile
 );
 
+router.patch(
+  "/:uid/admin/update",
+  [
+    check("name").not().isEmpty(),
+    check("role").optional().isIn(["admin", "user", "traffic warden"]),
+  ],
+  user_controller.updateAdminProfile
+);
+
 router.post(
   "/:uid/send_email",
   [check("subject").not().isEmpty(), check("message").not().isEmpty()],
