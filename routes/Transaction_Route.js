@@ -14,6 +14,13 @@ router.post("/:uid/paypal", transaction_controller.createTopUpTransaction);
 
 router.post("/:uid/paypal/capture", transaction_controller.capturePayment);
 
+router.post(
+  "/:uid/paypal/local_authority",
+  transaction_controller.createPayLocalAuthorityTransaction
+);
+
+// router.post("/:uid/paypal/local_authority/capture", transaction_controller.createParkingTransaction);
+
 router.post("/create", transaction_controller.createParkingTransaction);
 
 router.post("/create/saman", transaction_controller.createSamanTransaction);

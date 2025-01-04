@@ -2,10 +2,10 @@
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
+const LocalAuthority = require("../models/Local_Authority");
 const HttpError = require("../models/Http_Error");
 const paypal = require("@paypal/checkout-server-sdk");
 const mongoose = require("mongoose");
-const { DateTime } = require("luxon");
 
 const environment =
   process.env.NODE_ENV === "production"
@@ -153,6 +153,85 @@ const capturePayment = async (req, res, next) => {
   } catch (e) {
     console.error("Capture error:", e);
     return next(new HttpError("Payment capture failed, please try again", 500));
+  }
+};
+
+const createPayLocalAuthorityTransaction = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
+  }
+
+  const { money, authority_id } = req.body; // Payment amount and authority ID
+  const userId = req.params.uid;
+
+  if (!money || !authority_id) {
+    return next(
+      new HttpError("Money and authority ID are required fields", 400)
+    );
+  }
+
+  let user, localAuthority;
+
+  try {
+    user = await User.findById(userId); // Fetch user
+    localAuthority = await LocalAuthority.findById(authority_id); // Fetch local authority
+
+    if (!user) {
+      return next(new HttpError("User not found", 404));
+    }
+
+    if (!localAuthority || !localAuthority.email) {
+      return next(
+        new HttpError("Local authority not found or email missing", 404)
+      );
+    }
+  } catch (e) {
+    console.error("Error fetching user or authority data:", e);
+    return next(new HttpError("Fetching user or authority data failed", 500));
+  }
+
+  const request = new paypal.orders.OrdersCreateRequest();
+  request.prefer("return=representation");
+  request.requestBody({
+    intent: "CAPTURE",
+    purchase_units: [
+      {
+        amount: {
+          currency_code: "MYR", // Replace with your currency code
+          value: money.toString(),
+        },
+        description: `Parking fee payment to ${localAuthority.name}`,
+        custom_id: `${userId}_${authority_id}`, // Tracking IDs
+        shipping_preference: "NO_SHIPPING",
+        payee: {
+          email_address: localAuthority.email, // Local authority's email
+        },
+      },
+    ],
+    application_context: {
+      return_url: `http://return_url/paypal-success`,
+      cancel_url: `http://return_url/paypal-cancel`,
+    },
+  });
+
+  try {
+    const order = await paypalClient.execute(request);
+    const approvalLink = order.result.links.find(
+      (link) => link.rel === "approve"
+    ).href;
+
+    return res.status(201).json({
+      orderID: order.result.id,
+      approvalLink: approvalLink,
+    });
+  } catch (e) {
+    console.error("PayPal order creation failed:", e);
+    return next(
+      new HttpError("PayPal order creation failed, please try again", 500)
+    );
   }
 };
 
@@ -433,6 +512,7 @@ const getDailySaman = async (req, res, next) => {
 
 exports.createTopUpTransaction = createTopUpTransaction;
 exports.capturePayment = capturePayment;
+exports.createPayLocalAuthorityTransaction = createPayLocalAuthorityTransaction;
 exports.createParkingTransaction = createParkingTransaction;
 exports.createSamanTransaction = createSamanTransaction;
 exports.getTransactionByUserId = getTransactionByUserId;
