@@ -10,6 +10,11 @@ router.get("/:cpid/detail", car_parking_controller.getCarParkingById);
 
 router.get("/:uid/status", car_parking_controller.getCarParkingByUserId);
 
+router.get(
+  "/:uid/parking_history",
+  car_parking_controller.getParkingHistoryByUserId
+);
+
 router.post(
   "/check_status",
   [

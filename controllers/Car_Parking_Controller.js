@@ -69,6 +69,64 @@ const getCarParkingByUserId = async (req, res, next) => {
   });
 };
 
+const getParkingHistoryByUserId = async (req, res, next) => {
+  const userId = req.params.uid; // Get user ID from the URL params
+  const { start_date, end_date } = req.query; // Get date filter values from query parameters
+
+  let dateFilter = {};
+  if (start_date) {
+    dateFilter.$gte = new Date(start_date); // Start from the beginning of the day
+  }
+  if (end_date) {
+    const endDate = new Date(end_date);
+    endDate.setUTCHours(23, 59, 59, 999); // Extend to the end of the day
+    dateFilter.$lte = endDate;
+  }
+
+  try {
+    // Query for car parking history
+    const carParkingHistory = await mongoose
+      .model("Car_Parking")
+      .find({
+        creator: userId,
+        ...(Object.keys(dateFilter).length
+          ? { starting_time: dateFilter }
+          : {}),
+      })
+      .populate("local_authority", "nickname") // Populate local authority with only the nickname
+      .populate("vehicle", "license_plate") // Populate vehicle with only the license plate
+      .sort({ starting_time: -1 }); // Sort by starting time in descending order
+
+    if (!carParkingHistory || carParkingHistory.length === 0) {
+      return next(
+        new HttpError("No car parking history found for the user.", 404)
+      );
+    }
+
+    // Construct response
+    const response = carParkingHistory.map((parking) => ({
+      id: parking._id,
+      start_time: parking.starting_time,
+      end_time: parking.end_time,
+      duration: parking.duration,
+      vehicle: parking.vehicle
+        ? { license_plate: parking.vehicle.license_plate }
+        : null,
+      deliver: parking.local_authority
+        ? parking.local_authority.nickname
+        : "Unknown",
+      status: parking.status,
+    }));
+
+    res.status(200).json({ carParking: response });
+  } catch (err) {
+    console.error("Error fetching parking history:", err);
+    return next(
+      new HttpError("Fetching car parking data failed, please try again.", 500)
+    );
+  }
+};
+
 // Get Car Parking status by User Id
 const checkCarParkingStatus = async (req, res, next) => {
   // Validate the error
@@ -383,6 +441,7 @@ const sendSMS = async (req, res, next) => {
 // Export the Function
 exports.getCarParkingById = getCarParkingById;
 exports.getCarParkingByUserId = getCarParkingByUserId;
+exports.getParkingHistoryByUserId = getParkingHistoryByUserId;
 exports.checkCarParkingStatus = checkCarParkingStatus;
 exports.createCarParking = createCarParking;
 exports.extendCarParking = extendCarParking;
